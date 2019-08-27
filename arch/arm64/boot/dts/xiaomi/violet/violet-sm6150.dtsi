@@ -69,3 +69,8 @@
 &sdhc_2 {
 	cd-gpios = <&tlmm 99 0>;
 };
+
+// Force warm reboot on 'shutdown,thermal'
+&msm_poweroff {
+	qcom,force-warm-reboot-on-thermal-shutdown;
+};
