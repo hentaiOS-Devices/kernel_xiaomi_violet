@@ -79,6 +79,7 @@ struct qg_dt {
 	bool			multi_profile_load;
 	bool			tcss_enable;
 	bool			bass_enable;
+	const char		*batt_type_name;
 };
 
 struct qg_esr_data {
