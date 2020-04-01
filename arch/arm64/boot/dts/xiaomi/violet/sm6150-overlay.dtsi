@@ -1,0 +1,43 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
+/ {
+	aliases {
+		spi0 = "/soc/spi@a88000";
+		/delete-property/ swr0;
+	};
+};
+
+&firmware {
+	android {
+		vbmeta {
+			parts = "vbmeta,boot,recovery,system,vendor,dtbo";
+		};
+
+		fstab {
+			vendor {
+				fsmgr_flags = "wait,avb";
+			};
+		};
+	};
+};
+
+&wdog {
+	qcom,bark-time = <15000>;
+};
+
+&qcom_seecom {
+	reg = <0x86d00000 0x2200000>;
+};
+
+&qcom_smcinvoke {
+	reg = <0x86d00000 0x2200000>;
+};
+
+&soc {
+	sn_fuse: snfuse@0x786134 {
+		compatible = "qcom,sn-fuse";
+		reg = <0x786134 0x4>,
+		      <0x78607C 0x4>;
+		reg-names = "sn-base","fuse-state";
+	};
+};
