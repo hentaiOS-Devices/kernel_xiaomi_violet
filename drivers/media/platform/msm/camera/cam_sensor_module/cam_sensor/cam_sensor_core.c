@@ -18,121 +18,6 @@
 #include "cam_trace.h"
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
-#include "cam_sensor_hw_sync.h"
-
-#ifdef CONFIG_CAMERA_FW_UPDATE
-#include "../cam_fw_update/fw_update.h"
-#endif
-
-static struct sensor_status_t sensor_status;
-static enum laser_tag_type laser_tag_indicator;
-
-static irqreturn_t cam_dot_flood_irq_handler(int irq, void *dev_id)
-{
-	struct cam_sensor_ctrl_t *s_ctrl = (struct cam_sensor_ctrl_t *)dev_id;
-	struct cam_soc_gpio_data *gpio_conf;
-	int gpio_level;
-	uint8_t gpio_count;
-	uint8_t gpio_idx;
-
-	if (!s_ctrl) {
-		CAM_ERR(CAM_SENSOR, "can not get sensor control structure");
-		return IRQ_HANDLED;
-	}
-	gpio_conf = s_ctrl->soc_info.gpio_data;
-	gpio_count = gpio_conf->cam_gpio_req_tbl_size;
-	gpio_idx = s_ctrl->cam_safety_gpio_idx[LASER_STATUS];
-	gpio_level =
-		gpio_get_value(gpio_conf->cam_gpio_req_tbl[gpio_idx].gpio);
-	laser_tag_indicator = (gpio_level == 1 ?
-		LASER_TAG_DOT : LASER_TAG_FLOOD);
-
-	return IRQ_HANDLED;
-}
-
-static void cam_register_laser_irq(struct cam_sensor_ctrl_t *s_ctrl,
-	enum cam_sensor_gpio_irq type)
-{
-	if (s_ctrl->cam_sensor_irq[type] == 0)
-		return;
-	switch (type) {
-	case LASER_STATUS:
-		request_irq(s_ctrl->cam_sensor_irq[type],
-			cam_dot_flood_irq_handler,
-			IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-			"laser_tag", s_ctrl);
-		break;
-	default:
-		CAM_WARN(CAM_SENSOR, "unsupported irq type: %d", type);
-	}
-}
-
-static void cam_release_laser_irq(struct cam_sensor_ctrl_t *s_ctrl,
-	enum cam_sensor_gpio_irq type)
-{
-	if (s_ctrl->cam_sensor_irq[type] == 0)
-		return;
-	free_irq(s_ctrl->cam_sensor_irq[type], s_ctrl);
-}
-
-static void cam_find_laser_irq(struct cam_sensor_ctrl_t *s_ctrl)
-{
-	int i;
-	struct cam_soc_gpio_data *gpio_conf = s_ctrl->soc_info.gpio_data;
-	uint8_t gpio_count = gpio_conf->cam_gpio_req_tbl_size;
-
-	for (i = 0; i < gpio_count; i++) {
-		if (strcmp(gpio_conf->cam_gpio_req_tbl[i].label,
-			"DOT_FLOOD_STATUS") == 0) {
-			s_ctrl->cam_sensor_irq[LASER_STATUS] =
-				gpio_to_irq(
-				gpio_conf->cam_gpio_req_tbl[i].gpio);
-			s_ctrl->cam_safety_gpio_idx[LASER_STATUS] = i;
-			break;
-		}
-	}
-	if (s_ctrl->cam_sensor_irq[LASER_STATUS] == 0)
-		CAM_INFO(CAM_SENSOR,
-			"no valid IRQ found for laser status");
-}
-
-
-static ssize_t ois_fw_ver_show(struct device *dev,
-	struct device_attribute *attr,
-	char *buf)
-{
-	int rc;
-	struct cam_sensor_ctrl_t *ctrl = dev_get_drvdata(dev);
-
-	mutex_lock(&ctrl->cam_sensor_mutex);
-	rc = scnprintf(buf, PAGE_SIZE, "%d\n", ctrl->ois_fw_ver);
-	mutex_unlock(&ctrl->cam_sensor_mutex);
-	return rc;
-}
-
-static ssize_t vcm_fw_ver_show(struct device *dev,
-	struct device_attribute *attr,
-	char *buf)
-{
-	int rc;
-	struct cam_sensor_ctrl_t *ctrl = dev_get_drvdata(dev);
-
-	mutex_lock(&ctrl->cam_sensor_mutex);
-	rc = scnprintf(buf, PAGE_SIZE, "%d\n", ctrl->vcm_fw_ver);
-	mutex_unlock(&ctrl->cam_sensor_mutex);
-	return rc;
-}
-
-static DEVICE_ATTR_RO(ois_fw_ver);
-static DEVICE_ATTR_RO(vcm_fw_ver);
-
-static struct attribute *sensor_fw_dev_attrs[] = {
-	&dev_attr_ois_fw_ver.attr,
-	&dev_attr_vcm_fw_ver.attr,
-	NULL
-};
-
-ATTRIBUTE_GROUPS(sensor_fw_dev);
 
 static void cam_sensor_update_req_mgr(
 	struct cam_sensor_ctrl_t *s_ctrl,
@@ -177,24 +62,6 @@ static void cam_sensor_release_stream_rsc(
 			CAM_ERR(CAM_SENSOR,
 				"failed while deleting Streamon settings");
 	}
-
-	i2c_set = &(s_ctrl->i2c_data.master_settings);
-	if (i2c_set->is_settings_valid == 1) {
-		i2c_set->is_settings_valid = -1;
-		rc = delete_request(i2c_set);
-		if (rc < 0)
-			CAM_ERR(CAM_SENSOR,
-				"failed while deleting Master settings");
-	}
-
-	i2c_set = &(s_ctrl->i2c_data.slave_settings);
-	if (i2c_set->is_settings_valid == 1) {
-		i2c_set->is_settings_valid = -1;
-		rc = delete_request(i2c_set);
-		if (rc < 0)
-			CAM_ERR(CAM_SENSOR,
-				"failed while deleting Slave settings");
-	}
 }
 
 static void cam_sensor_release_per_frame_resource(
@@ -216,84 +83,6 @@ static void cam_sensor_release_per_frame_resource(
 			}
 		}
 	}
-}
-
-static int32_t cam_sensor_read_reg(
-	struct cam_sensor_ctrl_t *s_ctrl,
-	struct cam_packet *csl_packet)
-{
-	int32_t rc = 0;
-	uint8_t buf[8] = { 0 };
-	uint32_t addr = 0;
-	int32_t num_bytes = 0;
-	uint32_t total_cmd_buf_in_bytes = 0;
-	uintptr_t generic_ptr;
-	struct cam_cmd_buf_desc *cmd_desc = NULL;
-	size_t len_of_buff = 0;
-	uint32_t *offset = NULL;
-	struct cam_cmd_get_sensor_data *cmd_get_sensor = NULL;
-
-	if (csl_packet->num_cmd_buf != 1) {
-		CAM_ERR(CAM_SENSOR,
-			"More than one cmd buf found in sensor read");
-		return -EINVAL;
-	}
-
-	offset = (uint32_t *)&csl_packet->payload;
-	offset += csl_packet->cmd_buf_offset / sizeof(uint32_t);
-	cmd_desc = (struct cam_cmd_buf_desc *)(offset);
-	total_cmd_buf_in_bytes = cmd_desc->length;
-	if (!total_cmd_buf_in_bytes) {
-		CAM_ERR(CAM_SENSOR,
-			"Empty cmd buf found in sensor read");
-		return -EINVAL;
-	}
-
-	// To keep the pointer of reg_data
-	rc = cam_mem_get_cpu_buf(cmd_desc->mem_handle,
-		&generic_ptr, &len_of_buff);
-	if (rc < 0) {
-		CAM_ERR(CAM_SENSOR, "Failed to get cpu buf");
-		return rc;
-	}
-	if (!generic_ptr) {
-		CAM_ERR(CAM_SENSOR, "invalid generic_ptr");
-		return -EINVAL;
-	}
-	offset = (uint32_t *)((uint8_t *)generic_ptr +
-		cmd_desc->offset);
-	cmd_get_sensor = (struct cam_cmd_get_sensor_data *)offset;
-
-	addr = cmd_get_sensor->reg_addr;
-	num_bytes = cmd_get_sensor->reg_data;
-	if (addr <= 0 || addr > 0xFFFF) {
-		CAM_ERR(CAM_SENSOR,
-			"Invalid addr while read Sensor data: %x", addr);
-		return -EINVAL;
-	}
-
-	if (num_bytes <= 0 || num_bytes > 8) {
-		CAM_ERR(CAM_SENSOR,
-			"Invalid read size while read Sensor data: %d",
-			num_bytes);
-		return -EINVAL;
-	}
-
-	rc = camera_io_dev_read_seq(&s_ctrl->io_master_info,
-		addr, buf, CAMERA_SENSOR_I2C_TYPE_WORD,
-		CAMERA_SENSOR_I2C_TYPE_WORD, num_bytes);
-
-	if (rc) {
-		CAM_ERR(CAM_SENSOR, "camera_io_dev_read_seq failed!");
-		return rc;
-	}
-
-	if (copy_to_user((void __user *) cmd_get_sensor->query_data_handle,
-		buf, num_bytes)) {
-		CAM_ERR(CAM_SENSOR, "sensor_read_reg: copy to user failed!");
-	}
-
-	return rc;
 }
 
 static int32_t cam_sensor_i2c_pkt_parse(struct cam_sensor_ctrl_t *s_ctrl,
@@ -404,19 +193,6 @@ static int32_t cam_sensor_i2c_pkt_parse(struct cam_sensor_ctrl_t *s_ctrl,
 		i2c_reg_settings->is_settings_valid = 1;
 		break;
 	}
-	case CAM_SENSOR_PACKET_OPCODE_SENSOR_SYNC_MASTER: {
-		i2c_reg_settings = &i2c_data->master_settings;
-		i2c_reg_settings->request_id = 0;
-		i2c_reg_settings->is_settings_valid = 1;
-		break;
-	}
-
-	case CAM_SENSOR_PACKET_OPCODE_SENSOR_SYNC_SLAVE: {
-		i2c_reg_settings = &i2c_data->slave_settings;
-		i2c_reg_settings->request_id = 0;
-		i2c_reg_settings->is_settings_valid = 1;
-		break;
-	}
 
 	case CAM_SENSOR_PACKET_OPCODE_SENSOR_UPDATE: {
 		if ((s_ctrl->sensor_state == CAM_SENSOR_INIT) ||
@@ -446,14 +222,6 @@ static int32_t cam_sensor_i2c_pkt_parse(struct cam_sensor_ctrl_t *s_ctrl,
 			goto rel_pkt_buf;
 		}
 		break;
-	}
-	case CAM_SENSOR_PACKET_OPCODE_SENSOR_READREG: {
-		rc = cam_sensor_read_reg(s_ctrl, csl_packet);
-		return rc;
-	}
-	case CAM_SENSOR_PACKET_OPCODE_SENSOR_SYNC_CMD: {
-		rc = cam_sensor_sync_pkt_parse(s_ctrl, csl_packet);
-		return rc;
 	}
 	case CAM_SENSOR_PACKET_OPCODE_SENSOR_NOP: {
 		if ((s_ctrl->sensor_state == CAM_SENSOR_INIT) ||
@@ -504,21 +272,6 @@ static int32_t cam_sensor_i2c_modes_util(
 {
 	int32_t rc = 0;
 	uint32_t i, size;
-	uint16_t default_sid = 0;
-	struct cam_sensor_ctrl_t *s_ctrl;
-
-	s_ctrl = container_of(io_master_info,
-		struct cam_sensor_ctrl_t,
-		io_master_info);
-	if (s_ctrl)
-		cam_sensor_sync_audit(s_ctrl, i2c_list);
-
-	if ((io_master_info->master_type == CCI_MASTER) &&
-		(i2c_list->i2c_settings.slave_addr != 0)) {
-		default_sid = io_master_info->cci_client->sid;
-		io_master_info->cci_client->sid =
-			i2c_list->i2c_settings.slave_addr >> 1;
-	}
 
 	if (i2c_list->op_code == CAM_SENSOR_I2C_WRITE_RANDOM) {
 		rc = camera_io_dev_write(io_master_info,
@@ -570,11 +323,6 @@ static int32_t cam_sensor_i2c_modes_util(
 		}
 	}
 
-	if ((io_master_info->master_type == CCI_MASTER) &&
-		(i2c_list->i2c_settings.slave_addr != 0)) {
-		io_master_info->cci_client->sid = default_sid;
-	}
-
 	return rc;
 }
 
@@ -592,15 +340,6 @@ int32_t cam_sensor_update_i2c_info(struct cam_cmd_i2c_info *i2c_info,
 			return -EINVAL;
 		}
 		cci_client->cci_i2c_master = s_ctrl->cci_i2c_master;
-
-		if (s_ctrl->override_info.sensor_slave_addr) {
-			CAM_INFO(CAM_SENSOR, "slave_addr > ori: 0x%x new: 0x%x",
-				i2c_info->slave_addr,
-				s_ctrl->override_info.sensor_slave_addr);
-			i2c_info->slave_addr =
-				s_ctrl->override_info.sensor_slave_addr;
-		}
-
 		cci_client->sid = i2c_info->slave_addr >> 1;
 		cci_client->retries = 3;
 		cci_client->id_map = 0;
@@ -622,23 +361,16 @@ int32_t cam_sensor_update_slave_info(struct cam_cmd_probe *probe_info,
 
 	s_ctrl->sensordata->slave_info.sensor_id_reg_addr =
 		probe_info->reg_addr;
-
-	if (s_ctrl->override_info.sensor_id) {
-		CAM_INFO(CAM_SENSOR, "sensor_id > ori: 0x%x new: 0x%x",
-			probe_info->expected_data,
-			s_ctrl->override_info.sensor_id);
-		probe_info->expected_data = s_ctrl->override_info.sensor_id;
-	}
-
 	s_ctrl->sensordata->slave_info.sensor_id =
 		probe_info->expected_data;
 	s_ctrl->sensordata->slave_info.sensor_id_mask =
 		probe_info->data_mask;
-	s_ctrl->fw_update_flag = probe_info->fw_update_flag;
 	/* Userspace passes the pipeline delay in reserved field */
 	s_ctrl->pipeline_delay =
 		probe_info->reserved;
 
+	s_ctrl->sensordata->camera_id = probe_info->camera_id;
+	s_ctrl->sensordata->sensorName = probe_info->sensorName;
 	s_ctrl->sensor_probe_addr_type =  probe_info->addr_type;
 	s_ctrl->sensor_probe_data_type =  probe_info->data_type;
 	CAM_DBG(CAM_SENSOR,
@@ -825,6 +557,8 @@ void cam_sensor_query_cap(struct cam_sensor_ctrl_t *s_ctrl,
 		s_ctrl->sensordata->subdev_id[SUB_MODULE_LED_FLASH];
 	query_cap->ois_slot_id =
 		s_ctrl->sensordata->subdev_id[SUB_MODULE_OIS];
+	query_cap->ir_led_slot_id =
+		s_ctrl->sensordata->subdev_id[SUB_MODULE_IR_LED];
 	query_cap->slot_info =
 		s_ctrl->soc_info.index;
 }
@@ -855,7 +589,7 @@ void cam_sensor_shutdown(struct cam_sensor_ctrl_t *s_ctrl)
 	int rc = 0;
 
 	if ((s_ctrl->sensor_state == CAM_SENSOR_INIT) &&
-		(s_ctrl->is_probe_succeed == 1))
+		(s_ctrl->is_probe_succeed == 0))
 		return;
 
 	cam_sensor_release_stream_rsc(s_ctrl);
@@ -913,71 +647,134 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 	return rc;
 }
 
-static int32_t cam_sensor_update_ir_cams_strobe(
-	struct cam_sensor_ctrl_t *s_ctrl, bool enable)
+static int msm_sensor_parse_data(struct cam_sensor_ctrl_t *s_ctrl,
+	uint32_t values_addr[7], uint32_t values_data[7], int oem)
 {
-	int32_t rc;
-	struct cam_sensor_i2c_reg_setting write_setting;
-	struct cam_sensor_i2c_reg_array reg_settings;
+	struct cam_sensor_i2c_reg_setting i2c_reg_settings = {0};
+	struct cam_sensor_i2c_reg_array i2c_reg_array = {0};
+	int rc = 0, i, max_i;
+	/* oem: 0 - Sony, 1 - Samsung, 2 - Omnivision */
 
-	reg_settings.reg_addr = FLASH_STROBE_ADDR;
-	reg_settings.delay = 0;
+	if (oem < 2)
+		max_i = 4;
+	else
+		max_i = 3;
 
-	write_setting.reg_setting = &reg_settings;
-	write_setting.addr_type = CAMERA_SENSOR_I2C_TYPE_WORD;
-	write_setting.data_type = CAMERA_SENSOR_I2C_TYPE_BYTE;
-	write_setting.size = 1;
-	write_setting.delay = 0;
-
-	if (enable == true) {
-		CAM_INFO(CAM_SENSOR, "re-setting storbe, strobe type: %d",
-			s_ctrl->strobeType);
-		write_setting.reg_setting->reg_data = FLASH_STROBE_EVEN;
-
-		rc = camera_io_dev_write(&(s_ctrl->peer_ir_info),
-			&write_setting);
-		if (rc < 0) {
-			CAM_ERR(CAM_SENSOR,
-				"failed on cci write, addr 0x%x, data: 0x%x",
-				reg_settings.reg_addr, reg_settings.reg_data);
-			goto out;
+	for (i = 0; i < max_i; i++) {
+		pr_info("oem id: %i, retry: %i, max_retries: %i", oem, i, max_i);
+		if (!oem) {
+			i2c_reg_settings.addr_type = CAMERA_SENSOR_I2C_TYPE_WORD;
+			i2c_reg_settings.data_type = CAMERA_SENSOR_I2C_TYPE_BYTE;
+			if (i == 3)
+				i2c_reg_array.delay = 15;
+			else
+				i2c_reg_array.delay = 1;
+		} else {
+			i2c_reg_settings.addr_type = 2;
+			i2c_reg_settings.data_type = 1;
+			i2c_reg_array.delay = 1;
 		}
 
-		if (s_ctrl->strobeType == STROBE_ALTERNATIVE)
-			write_setting.reg_setting->reg_data = FLASH_STROBE_ODD;
+		i2c_reg_settings.size = 1;
+		i2c_reg_array.reg_addr = values_addr[i];
+		i2c_reg_array.reg_data = values_data[i];
+		i2c_reg_settings.reg_setting = &i2c_reg_array;
 
-		rc = camera_io_dev_write(&(s_ctrl->io_master_info),
-			&write_setting);
-		if (rc < 0) {
-			CAM_ERR(CAM_SENSOR,
-				"failed on cci write, addr 0x%x, data: 0x%x",
-				reg_settings.reg_addr, reg_settings.reg_data);
-		} else
-			sensor_status.is_strobe_disabled = false;
-	} else {
-		write_setting.reg_setting->reg_data = FLASH_STROBE_DISABLE;
-
-		rc = camera_io_dev_write(&(s_ctrl->io_master_info),
-			&write_setting);
-		if (rc < 0) {
-			CAM_ERR(CAM_SENSOR,
-				"failed on cci write, addr 0x%x, data: 0x%x",
-				reg_settings.reg_addr, reg_settings.reg_data);
-			goto out;
-		}
-
-		rc = camera_io_dev_write(&(s_ctrl->peer_ir_info),
-			&write_setting);
-		if (rc < 0) {
-			CAM_ERR(CAM_SENSOR,
-				"failed on cci write, addr 0x%x, data: 0x%x",
-				reg_settings.reg_addr, reg_settings.reg_data);
-		} else
-			sensor_status.is_strobe_disabled = true;
+		rc = camera_io_dev_write(&s_ctrl->io_master_info,
+			&i2c_reg_settings);
+		if (rc < 0)
+			CAM_ERR(CAM_SENSOR, "page write failed rc %i", rc);
 	}
 
-out:
 	return rc;
+}
+
+static uint16_t msm_sensor_power_up_sony_imx586(struct cam_sensor_ctrl_t *s_ctrl)
+{
+	int rc = 0;
+	uint32_t values_addr[4] = { 0x0136, 0x0137, 0x0A02, 0x0A00 };
+	uint32_t values_data[4] = { 0x18, 0x00, 0x7F, 0x01 };
+
+	rc = msm_sensor_parse_data(s_ctrl, values_addr, values_data, 0);
+	if (rc < 0)
+		goto error;
+
+	return rc;
+error:
+	CAM_ERR(CAM_SENSOR, "xy++ page write failed rc %i", rc);
+	return rc;
+}
+
+static uint16_t msm_sensor_power_up_samsung_5e8(struct cam_sensor_ctrl_t *s_ctrl)
+{
+	int rc = 0;
+	uint32_t values_addr[4] = { 0x0100, 0x0a00, 0x0a02, 0x0a00 };
+	uint32_t values_data[4] = { 0x00, 0x04, 0x00, 0x01 };
+
+	rc = msm_sensor_parse_data(s_ctrl, values_addr, values_data, 1);
+	if (rc < 0)
+		goto error;
+
+	return rc;
+error:
+	CAM_ERR(CAM_SENSOR, "lxl page write failed rc %i", rc);
+	return rc;
+}
+
+static uint16_t msm_sensor_power_up_ovti_13855(struct cam_sensor_ctrl_t *s_ctrl)
+{
+
+	int rc = 0;
+	uint32_t values_addr[7] = { 0x3d81, 0x3d84, 0x3d88, 0x3d89, 0x3d8a, 0x3d8b, 0x0100 };
+	uint32_t values_data[7] = { 0x01, 0x40, 0x70, 0x00, 0x70, 0x0f };
+
+	rc = msm_sensor_parse_data(s_ctrl, values_addr, values_data, 2);
+	if (rc < 0)
+		goto error;
+
+	return rc;
+error:
+	CAM_ERR(CAM_SENSOR, "xy++ page write failed rc %d", rc);
+	return rc;
+}
+
+#define CAM_BACK 0
+#define CAM_AUX_BACK 1
+#define CAM_FRONT 2
+
+static int msm_sensor_power_up_per_id(struct cam_sensor_ctrl_t *s_ctrl)
+{
+	int rc = 0;
+	int sensor_id = s_ctrl->sensordata->camera_id;
+
+	switch (sensor_id) {
+		case CAM_AUX_BACK:
+			rc = msm_sensor_power_up_sony_imx586(s_ctrl);
+			if (rc < 0) {
+				CAM_ERR(CAM_SENSOR, "sersor %i powerup failed", sensor_id);
+				return rc;
+			}
+			break;
+		case CAM_BACK:
+			rc = msm_sensor_power_up_samsung_5e8(s_ctrl);
+			if (rc < 0) {
+				CAM_ERR(CAM_SENSOR, "sersor %i powerup failed", sensor_id);
+				return rc;
+			}
+			break;
+		case CAM_FRONT:
+			rc = msm_sensor_power_up_ovti_13855(s_ctrl);
+			if (rc < 0) {
+				CAM_ERR(CAM_SENSOR, "sersor %i powerup failed", sensor_id);
+				return rc;
+			}
+			break;
+		default:
+			CAM_ERR(CAM_SENSOR, "unknown sensor");
+			return -1;
+			break;
+	}
+	return 0;
 }
 
 int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
@@ -1062,40 +859,17 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 			goto free_power_settings;
 		}
 
-		/* Find laser status irq for EVT or later build */
-		if (s_ctrl->soc_info.index == IR_MASTER &&
-			s_ctrl->hw_version >= 2)
-			cam_find_laser_irq(s_ctrl);
+		rc = msm_sensor_power_up_per_id(s_ctrl);
+		if (rc < 0) {
+			msleep(20);
+			goto free_power_settings;
+		}
 
 		CAM_INFO(CAM_SENSOR,
-			"Probe success,slot:%d,slave_addr:0x%x,sensor_id:0x%x",
+			"Probe success,slot:%d,slave_addr:0x%x,sensor_id:0x%x sensor_name:%s",
 			s_ctrl->soc_info.index,
 			s_ctrl->sensordata->slave_info.sensor_slave_addr,
-			s_ctrl->sensordata->slave_info.sensor_id);
-
-#ifdef CONFIG_CAMERA_FW_UPDATE
-		if (s_ctrl->fw_update_flag) {
-			CAM_INFO(CAM_SENSOR, "[OISFW]Check OIS FW update");
-			rc = checkOISFWUpdate(s_ctrl);
-		}
-#endif
-
-		if (s_ctrl->ois_fw_ver == 0 || s_ctrl->vcm_fw_ver == 0) {
-			rc = getFWVersion(s_ctrl);
-			if (rc >= 0) {
-				dev_set_drvdata(&s_ctrl->pdev->dev, s_ctrl);
-				rc = sysfs_create_groups(
-					&s_ctrl->pdev->dev.kobj,
-					sensor_fw_dev_groups);
-				if (rc < 0) {
-					CAM_ERR(CAM_SENSOR,
-						"failed to create sysfs");
-					cam_sensor_power_down(s_ctrl);
-					msleep(20);
-					goto free_power_settings;
-				}
-			}
-		}
+			s_ctrl->sensordata->slave_info.sensor_id,s_ctrl->sensordata->sensorName);
 
 		rc = cam_sensor_power_down(s_ctrl);
 		if (rc < 0) {
@@ -1141,7 +915,7 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 		bridge_params.v4l2_sub_dev_flag = 0;
 		bridge_params.media_entity_flag = 0;
 		bridge_params.priv = s_ctrl;
-
+		bridge_params.dev_id = CAM_SENSOR;
 		sensor_acq_dev.device_handle =
 			cam_create_device_hdl(&bridge_params);
 		s_ctrl->bridge_intf.device_hdl = sensor_acq_dev.device_handle;
@@ -1162,10 +936,6 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 			CAM_ERR(CAM_SENSOR, "Sensor Power up failed");
 			goto release_mutex;
 		}
-
-		if (s_ctrl->soc_info.index == IR_MASTER &&
-			s_ctrl->hw_version >= 2)
-			cam_register_laser_irq(s_ctrl, LASER_STATUS);
 
 		s_ctrl->sensor_state = CAM_SENSOR_ACQUIRE;
 		s_ctrl->last_flush_req = 0;
@@ -1214,17 +984,11 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 		if (rc < 0)
 			CAM_ERR(CAM_SENSOR,
 				"failed in destroying the device hdl");
-
-		if (s_ctrl->soc_info.index == IR_MASTER &&
-			s_ctrl->hw_version >= 2)
-			cam_release_laser_irq(s_ctrl, LASER_STATUS);
-
 		s_ctrl->bridge_intf.device_hdl = -1;
 		s_ctrl->bridge_intf.link_hdl = -1;
 		s_ctrl->bridge_intf.session_hdl = -1;
 
 		s_ctrl->sensor_state = CAM_SENSOR_INIT;
-
 		CAM_INFO(CAM_SENSOR,
 			"CAM_RELEASE_DEV Success, sensor_id:0x%x,sensor_slave_addr:0x%x",
 			s_ctrl->sensordata->slave_info.sensor_id,
@@ -1256,22 +1020,6 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 			goto release_mutex;
 		}
 
-		/* Disable strobe when peer IR is streaming on */
-		if ((((s_ctrl->soc_info.index == IR_MASTER) &&
-			((sensor_status.streamon_mask &
-				IR_SLAVE_STREAMON_MASK) != 0)) ||
-			((s_ctrl->soc_info.index == IR_SLAVE) &&
-			((sensor_status.streamon_mask &
-				IR_MASTER_STREAMON_MASK) != 0))) &&
-			s_ctrl->hw_version < 2) {
-			rc = cam_sensor_update_ir_cams_strobe(s_ctrl, false);
-			if (rc < 0) {
-				CAM_ERR(CAM_SENSOR,
-					"failed to disable strobe");
-			}
-
-		}
-
 		if (s_ctrl->i2c_data.streamon_settings.is_settings_valid &&
 			(s_ctrl->i2c_data.streamon_settings.request_id == 0)) {
 			rc = cam_sensor_apply_settings(s_ctrl, 0,
@@ -1282,27 +1030,11 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 				goto release_mutex;
 			}
 		}
-
-		sensor_status.streamon_mask |= (1 << s_ctrl->soc_info.index);
-		s_ctrl->strobeType = STROBE_NONE;
-		if (s_ctrl->hw_version >= 2 &&
-			(s_ctrl->soc_info.index == IR_MASTER ||
-			s_ctrl->soc_info.index == IR_SLAVE)) {
-			/* Set up static laser for
-			 * common slave address device
-			 */
-			s_ctrl->first_strobe_frame =
-				s_ctrl->soc_info.index == IR_MASTER ? 2 : 1;
-		} else
-			s_ctrl->first_strobe_frame = 0;
-
 		s_ctrl->sensor_state = CAM_SENSOR_START;
 		CAM_INFO(CAM_SENSOR,
-			"CAM_START_DEV Success, sensor_id:0x%x,"
-			"sensor_slave_addr:0x%x index: %d",
+			"CAM_START_DEV Success, sensor_id:0x%x,sensor_slave_addr:0x%x",
 			s_ctrl->sensordata->slave_info.sensor_id,
-			s_ctrl->sensordata->slave_info.sensor_slave_addr,
-			s_ctrl->soc_info.index);
+			s_ctrl->sensordata->slave_info.sensor_slave_addr);
 	}
 		break;
 	case CAM_STOP_DEV: {
@@ -1324,23 +1056,26 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 			}
 		}
 
-		sensor_status.streamon_mask &= ~(1 << s_ctrl->soc_info.index);
-		s_ctrl->strobeType = STROBE_NONE;
-		s_ctrl->first_strobe_frame = 0;
-
 		cam_sensor_release_per_frame_resource(s_ctrl);
-
 		s_ctrl->last_flush_req = 0;
 		s_ctrl->sensor_state = CAM_SENSOR_ACQUIRE;
 		CAM_INFO(CAM_SENSOR,
-			"CAM_STOP_DEV Success, sensor_id:0x%x,"
-			"sensor_slave_addr:0x%x index: %d",
+			"CAM_STOP_DEV Success, sensor_id:0x%x,sensor_slave_addr:0x%x",
 			s_ctrl->sensordata->slave_info.sensor_id,
-			s_ctrl->sensordata->slave_info.sensor_slave_addr,
-			s_ctrl->soc_info.index);
+			s_ctrl->sensordata->slave_info.sensor_slave_addr);
 	}
 		break;
 	case CAM_CONFIG_DEV: {
+		if (s_ctrl->sensor_state < CAM_SENSOR_ACQUIRE) {
+			rc = -EINVAL;
+			CAM_ERR(CAM_SENSOR,
+				"sensor_id:[0x%x] not acquired to configure [%d] ",
+				s_ctrl->sensordata->slave_info.sensor_id,
+				s_ctrl->sensor_state
+			);
+			goto release_mutex;
+		}
+
 		rc = cam_sensor_i2c_pkt_parse(s_ctrl, arg);
 		if (rc < 0) {
 			CAM_ERR(CAM_SENSOR, "Failed i2c pkt parse: %d", rc);
@@ -1488,9 +1223,6 @@ int cam_sensor_power_up(struct cam_sensor_ctrl_t *s_ctrl)
 	struct cam_camera_slave_info *slave_info;
 	struct cam_hw_soc_info *soc_info =
 		&s_ctrl->soc_info;
-	struct cam_sensor_i2c_reg_setting i2c_settings;
-	struct cam_sensor_i2c_reg_array reg_setting[2];
-	uint16_t default_sid = 0;
 
 	if (!s_ctrl) {
 		CAM_ERR(CAM_SENSOR, "failed: %pK", s_ctrl);
@@ -1522,62 +1254,9 @@ int cam_sensor_power_up(struct cam_sensor_ctrl_t *s_ctrl)
 	}
 
 	rc = camera_io_init(&(s_ctrl->io_master_info));
-	if (rc < 0) {
+	if (rc < 0)
 		CAM_ERR(CAM_SENSOR, "cci_init failed: rc: %d", rc);
-		cam_sensor_power_down(s_ctrl);
-		return rc;
-	}
 
-	if (s_ctrl->hw_version < 2 &&
-		(soc_info->index == IR_MASTER || soc_info->index == IR_SLAVE)) {
-		if (!s_ctrl->peer_ir_info.cci_client) {
-			CAM_ERR(CAM_SENSOR, "peer IR io info is empty");
-			cam_sensor_power_down(s_ctrl);
-			return -EFAULT;
-		}
-		rc = camera_io_init(&(s_ctrl->peer_ir_info));
-		if (rc < 0) {
-			CAM_ERR(CAM_SENSOR,
-				"cci_init for peer ir failed: rc: %d", rc);
-			cam_sensor_power_down(s_ctrl);
-			return rc;
-		}
-	}
-
-	if (s_ctrl->soc_info.index != IR_MASTER)
-		goto done;
-
-	default_sid = s_ctrl->io_master_info.cci_client->sid;
-	s_ctrl->io_master_info.cci_client->sid = 0xC0 >> 1;
-	reg_setting[0].reg_addr = 0x0103;
-	reg_setting[0].reg_data = 0x01;
-	reg_setting[0].delay = 0;
-	reg_setting[0].data_mask = 0xFF;
-	reg_setting[1].reg_addr = 0x302B;
-	reg_setting[1].reg_data = 0xE4;
-	reg_setting[1].delay = 0;
-	reg_setting[1].data_mask = 0xFF;
-	i2c_settings.reg_setting = reg_setting;
-	i2c_settings.size = 2;
-	i2c_settings.addr_type = CAMERA_SENSOR_I2C_TYPE_WORD;
-	i2c_settings.data_type = CAMERA_SENSOR_I2C_TYPE_BYTE;
-	i2c_settings.delay = 0;
-	rc = camera_io_dev_write(&(s_ctrl->io_master_info),
-		&i2c_settings);
-	s_ctrl->io_master_info.cci_client->sid = default_sid;
-
-	if (rc < 0) {
-		CAM_ERR(CAM_SENSOR,
-			"Reprogram IR_MASTER slave address failed rc = %d",
-			rc);
-		cam_sensor_power_down(s_ctrl);
-		return rc;
-	} else {
-		CAM_DBG(CAM_SENSOR,
-			"Reprogram IR_MASTER slave address success");
-	}
-
-done:
 	return rc;
 }
 
@@ -1617,13 +1296,6 @@ int cam_sensor_power_down(struct cam_sensor_ctrl_t *s_ctrl)
 
 	camera_io_release(&(s_ctrl->io_master_info));
 
-	if (s_ctrl->hw_version < 2 &&
-		(soc_info->index == IR_MASTER || soc_info->index == IR_SLAVE)) {
-		if (!s_ctrl->peer_ir_info.cci_client)
-			return rc;
-		camera_io_release(&(s_ctrl->peer_ir_info));
-	}
-
 	return rc;
 }
 
@@ -1651,14 +1323,6 @@ int cam_sensor_apply_settings(struct cam_sensor_ctrl_t *s_ctrl,
 		}
 		case CAM_SENSOR_PACKET_OPCODE_SENSOR_STREAMOFF: {
 			i2c_set = &s_ctrl->i2c_data.streamoff_settings;
-			break;
-		}
-		case CAM_SENSOR_PACKET_OPCODE_SENSOR_SYNC_MASTER: {
-			i2c_set = &s_ctrl->i2c_data.master_settings;
-			break;
-		}
-		case CAM_SENSOR_PACKET_OPCODE_SENSOR_SYNC_SLAVE: {
-			i2c_set = &s_ctrl->i2c_data.slave_settings;
 			break;
 		}
 		case CAM_SENSOR_PACKET_OPCODE_SENSOR_UPDATE:
@@ -1765,9 +1429,6 @@ int32_t cam_sensor_apply_request(struct cam_req_mgr_apply_request *apply)
 	CAM_DBG(CAM_REQ, " Sensor update req id: %lld", apply->request_id);
 	trace_cam_apply_req("Sensor", apply->request_id);
 	mutex_lock(&(s_ctrl->cam_sensor_mutex));
-	if (s_ctrl->soc_info.index <= REAR_TELE)
-		cam_sensor_sync_trigger(s_ctrl, apply->request_id);
-
 	rc = cam_sensor_apply_settings(s_ctrl, apply->request_id,
 		CAM_SENSOR_PACKET_OPCODE_SENSOR_UPDATE);
 	mutex_unlock(&(s_ctrl->cam_sensor_mutex));
@@ -1839,120 +1500,4 @@ int32_t cam_sensor_flush_request(struct cam_req_mgr_flush_request *flush_req)
 			flush_req->req_id);
 	mutex_unlock(&(s_ctrl->cam_sensor_mutex));
 	return rc;
-}
-
-int cam_sensor_set_strobe(struct cam_req_mgr_apply_request *apply, bool enable)
-{
-	int rc = 0;
-	struct cam_sensor_ctrl_t *s_ctrl = NULL;
-
-	if (!apply)
-		return -EINVAL;
-
-	s_ctrl = (struct cam_sensor_ctrl_t *)
-		cam_get_device_priv(apply->dev_hdl);
-	if (!s_ctrl) {
-		CAM_ERR(CAM_SENSOR, "Device data is NULL");
-		return -EINVAL;
-	}
-
-	if (s_ctrl->hw_version >= 2)
-		return 0;
-
-	if (s_ctrl->strobeType == STROBE_NONE)
-		return 0;
-
-	if (s_ctrl->soc_info.index == IR_SLAVE)
-		rc = cam_sensor_update_ir_cams_strobe(s_ctrl, enable);
-	if (rc < 0)
-		CAM_ERR(CAM_SENSOR,
-			"failed to set strobe");
-
-	switch (s_ctrl->strobeType) {
-	case STROBE_ALTERNATIVE:
-		if (s_ctrl->soc_info.index == IR_SLAVE) {
-			s_ctrl->first_strobe_frame = apply->frame_count + 2;
-		} else
-			s_ctrl->first_strobe_frame = apply->frame_count + 1;
-		break;
-	case STROBE_SYNCHRONIZE:
-		if (s_ctrl->soc_info.index == IR_SLAVE) {
-			s_ctrl->first_strobe_frame = apply->frame_count + 1;
-		} else
-			s_ctrl->first_strobe_frame = apply->frame_count + 2;
-		break;
-	default:
-		CAM_ERR(CAM_SENSOR,
-			"Unsupport strobe type, should not be here");
-	}
-
-	s_ctrl->strobeType = STROBE_NONE;
-
-	return rc;
-}
-
-int cam_sensor_tag_laser_type(
-	struct cam_req_mgr_message *msg,
-	int32_t dev_hdl)
-{
-	struct cam_sensor_ctrl_t *s_ctrl = NULL;
-	enum laser_tag_type laserTag = LASER_TAG_NONE;
-	bool is_both_ir_streamon;
-	bool is_ir_camera;
-
-	s_ctrl = (struct cam_sensor_ctrl_t *)
-		cam_get_device_priv(dev_hdl);
-	if (!s_ctrl) {
-		CAM_ERR(CAM_SENSOR, "Device data is NULL");
-		msg->u.frame_msg.laser_tag = laserTag;
-		return -EINVAL;
-	}
-
-	is_both_ir_streamon =
-		(((sensor_status.streamon_mask &
-			IR_MASTER_STREAMON_MASK) != 0) &&
-		((sensor_status.streamon_mask &
-			IR_SLAVE_STREAMON_MASK) != 0));
-	is_ir_camera =
-		(s_ctrl->soc_info.index == IR_SLAVE ||
-		s_ctrl->soc_info.index == IR_MASTER);
-
-	if (sensor_status.is_strobe_disabled)
-		goto out;
-
-	if (is_ir_camera && is_both_ir_streamon) {
-		if (s_ctrl->hw_version < 2) {
-			/* Tagging laser by strobe frame count after reset */
-			if (s_ctrl->soc_info.index == IR_MASTER) {
-				laserTag = ((msg->u.frame_msg.frame_id -
-					s_ctrl->first_strobe_frame) % 2) ?
-					LASER_TAG_DOT : LASER_TAG_FLOOD;
-			} else
-				laserTag = ((msg->u.frame_msg.frame_id -
-					s_ctrl->first_strobe_frame) % 2) ?
-					LASER_TAG_FLOOD : LASER_TAG_DOT;
-		} else
-			/* Tagging laser by IRQ signal */
-			laserTag = laser_tag_indicator;
-	} else if (is_ir_camera && !is_both_ir_streamon) {
-		/* Static tagging for single IR case */
-		if (s_ctrl->soc_info.index == IR_MASTER) {
-			laserTag = ((msg->u.frame_msg.frame_id -
-			s_ctrl->first_strobe_frame) % 2) ?
-				LASER_TAG_NONE : LASER_TAG_FLOOD;
-		} else
-			laserTag = ((msg->u.frame_msg.frame_id -
-			s_ctrl->first_strobe_frame) % 2) ?
-				LASER_TAG_NONE : LASER_TAG_DOT;
-	}
-out:
-	CAM_DBG(CAM_SENSOR,
-		"sensor: %d frame_count: %d requestId: %d laserTag: %d",
-		s_ctrl->soc_info.index,
-		msg->u.frame_msg.frame_id,
-		msg->u.frame_msg.request_id,
-		laserTag);
-	msg->u.frame_msg.laser_tag = laserTag;
-
-	return 0;
 }
