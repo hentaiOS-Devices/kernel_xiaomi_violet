@@ -1,4 +1,4 @@
-/* Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2016-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -159,6 +159,15 @@ struct sde_connector_ops {
 	 */
 	void (*enable_event)(struct drm_connector *connector,
 			uint32_t event_idx, bool enable, void *display);
+
+	/**
+	 * set_backlight - set backlight level
+	 * @connector: Pointer to drm connector structure
+	 * @display: Pointer to private display structure
+	 * @bl_lvel: Backlight level
+	 */
+	int (*set_backlight)(struct drm_connector *connector,
+			void *display, u32 bl_lvl);
 
 	/**
 	 * soft_reset - perform a soft reset on the connector
@@ -371,6 +380,8 @@ struct sde_connector_evt {
  * @bl_scale_dirty: Flag to indicate PP BL scale value(s) is changed
  * @bl_scale: BL scale value for ABA feature
  * @bl_scale_ad: BL scale value for AD feature
+ * @unset_bl_level: BL level that needs to be set later
+ * @allow_bl_update: Flag to indicate if BL update is allowed currently or not
  * @qsync_mode: Cached Qsync mode, 0=disabled, 1=continuous mode
  * @qsync_updated: Qsync settings were updated
  * last_cmd_tx_sts: status of the last command transfer
@@ -420,6 +431,8 @@ struct sde_connector {
 	bool bl_scale_dirty;
 	u32 bl_scale;
 	u32 bl_scale_ad;
+	u32 unset_bl_level;
+	bool allow_bl_update;
 
 	u32 qsync_mode;
 	bool qsync_updated;
@@ -847,13 +860,6 @@ void sde_conn_timeline_status(struct drm_connector *conn);
 void sde_connector_helper_bridge_disable(struct drm_connector *connector);
 
 /**
- * sde_connector_helper_bridge_pre_enable - helper function for drm bridge
- *                                          pre enable
- * @connector: Pointer to DRM connector object
- */
-void sde_connector_helper_bridge_pre_enable(struct drm_connector *connector);
-
-/**
  * sde_connector_destroy - destroy drm connector object
  * @connector: Pointer to DRM connector object
  */
@@ -869,11 +875,10 @@ void sde_connector_destroy(struct drm_connector *connector);
 int sde_connector_event_notify(struct drm_connector *connector, uint32_t type,
 		uint32_t len, uint32_t val);
 /**
- * sde_connector_helper_bridge_post_enable - helper function for drm bridge
- *                                           post enable
+ * sde_connector_helper_bridge_enable - helper function for drm bridge enable
  * @connector: Pointer to DRM connector object
  */
-void sde_connector_helper_bridge_post_enable(struct drm_connector *connector);
+void sde_connector_helper_bridge_enable(struct drm_connector *connector);
 
 /**
  * sde_connector_get_panel_vfp - helper to get panel vfp

@@ -190,6 +190,63 @@ void dsi_rect_intersect(const struct dsi_rect *r1,
 	}
 }
 
+int dsi_display_set_backlight(struct drm_connector *connector,
+		void *display, u32 bl_lvl)
+{
+	struct dsi_display *dsi_display = display;
+	struct dsi_panel *panel;
+	u32 bl_scale, bl_scale_ad;
+	u64 bl_temp;
+	int rc = 0;
+
+	if (dsi_display == NULL || dsi_display->panel == NULL)
+		return -EINVAL;
+
+	panel = dsi_display->panel;
+
+	mutex_lock(&panel->panel_lock);
+	if (!dsi_panel_initialized(panel)) {
+		rc = -EINVAL;
+		goto error;
+	}
+
+	panel->bl_config.bl_level = bl_lvl;
+
+	/* scale backlight */
+	bl_scale = panel->bl_config.bl_scale;
+	bl_temp = bl_lvl * bl_scale / MAX_BL_SCALE_LEVEL;
+
+	bl_scale_ad = panel->bl_config.bl_scale_ad;
+	bl_temp = (u32)bl_temp * bl_scale_ad / MAX_AD_BL_SCALE_LEVEL;
+
+	pr_debug("bl_scale = %u, bl_scale_ad = %u, bl_lvl = %u\n",
+		bl_scale, bl_scale_ad, (u32)bl_temp);
+
+	rc = dsi_display_clk_ctrl(dsi_display->dsi_clk_handle,
+			DSI_CORE_CLK, DSI_CLK_ON);
+	if (rc) {
+		pr_err("[%s] failed to enable DSI core clocks, rc=%d\n",
+		       dsi_display->name, rc);
+		goto error;
+	}
+
+	rc = dsi_panel_set_backlight(panel, (u32)bl_temp);
+	if (rc)
+		pr_err("unable to set backlight\n");
+
+	rc = dsi_display_clk_ctrl(dsi_display->dsi_clk_handle,
+			DSI_CORE_CLK, DSI_CLK_OFF);
+	if (rc) {
+		pr_err("[%s] failed to disable DSI core clocks, rc=%d\n",
+		       dsi_display->name, rc);
+		goto error;
+	}
+
+error:
+	mutex_unlock(&panel->panel_lock);
+	return rc;
+}
+
 static int dsi_display_cmd_engine_enable(struct dsi_display *display)
 {
 	int rc = 0;
@@ -4576,6 +4633,9 @@ int dsi_display_cont_splash_config(void *dsi_display)
 	dsi_config_host_engine_state_for_cont_splash(display);
 	mutex_unlock(&display->display_lock);
 
+	/* Set the current brightness level */
+	dsi_panel_bl_handoff(display->panel);
+
 	return rc;
 
 clks_disabled:
@@ -6951,14 +7011,6 @@ int dsi_display_prepare(struct dsi_display *display)
 					display->name, rc);
 			goto error_ctrl_link_off;
 		}
-	} else {
-		/* Keep the screen brightness for continuous splash. */
-		rc = dsi_panel_bl_brightness_handoff(display->panel);
-		if (rc) {
-			pr_warn("[%s] failed to handoff brightness, rc = %d\n",
-					display->panel->name, rc);
-			/* Ignore error and use default brightness */
-		}
 	}
 	goto error;
 
@@ -7189,9 +7241,6 @@ wait_failure:
 		mutex_unlock(&display->display_lock);
 	}
 
-	if (display->panel->funcs && display->panel->funcs->pre_kickoff)
-		display->panel->funcs->pre_kickoff(display->panel);
-
 	return rc;
 }
 
@@ -7343,7 +7392,7 @@ error:
 
 int dsi_display_post_enable(struct dsi_display *display)
 {
-	int rc = 0, err;
+	int rc = 0;
 
 	if (!display) {
 		pr_err("Invalid params\n");
@@ -7356,19 +7405,6 @@ int dsi_display_post_enable(struct dsi_display *display)
 	if (rc)
 		pr_err("[%s] panel post-enable failed, rc=%d\n",
 		       display->name, rc);
-
-	/* shouldn't read sn if post_enable fails */
-	if (!rc && !display->panel->vendor_info.is_sn) {
-		err = dsi_panel_get_sn(display->panel);
-		if (err)
-			pr_err("[%s] failed to get SN, err=%d\n",
-						display->name, err);
-
-		err = dsi_panel_get_vendor_extinfo(display->panel);
-		if (err)
-			pr_err("[%s] failed to get extinfo, err=%d\n",
-			       display->name, err);
-	}
 
 	/* remove the clk vote for CMD mode panels */
 	if (display->config.panel_mode == DSI_OP_CMD_MODE)

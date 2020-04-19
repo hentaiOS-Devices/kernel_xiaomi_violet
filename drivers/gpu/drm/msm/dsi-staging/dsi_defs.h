@@ -254,8 +254,6 @@ enum dsi_dfps_type {
  * @DSI_CMD_SET_LP1:                       Low power mode 1
  * @DSI_CMD_SET_LP2:                       Low power mode 2
  * @DSI_CMD_SET_NOLP:                      Low power mode disable
- * @DSI_CMD_SET_VR:                        VR mode (low persistence)
- * @DSI_CMD_SET_NOVR:                      VR mode disable
  * @DSI_CMD_SET_PPS:                       DSC PPS command
  * @DSI_CMD_SET_ROI:			   Panel ROI update
  * @DSI_CMD_SET_TIMING_SWITCH:             Timing switch
@@ -282,9 +280,6 @@ enum dsi_cmd_set_type {
 	DSI_CMD_SET_LP1,
 	DSI_CMD_SET_LP2,
 	DSI_CMD_SET_NOLP,
-	DSI_CMD_SET_POST_NOLP,
-	DSI_CMD_SET_VR,
-	DSI_CMD_SET_NOVR,
 	DSI_CMD_SET_PPS,
 	DSI_CMD_SET_ROI,
 	DSI_CMD_SET_TIMING_SWITCH,
@@ -587,8 +582,6 @@ struct dsi_display_mode_priv_info {
 	struct msm_display_dsc_info dsc;
 	bool dsc_enabled;
 	struct msm_roi_caps roi_caps;
-
-	void *switch_data;
 };
 
 /**
