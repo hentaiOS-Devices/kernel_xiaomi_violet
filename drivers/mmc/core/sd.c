@@ -1322,6 +1322,8 @@ static int _mmc_sd_resume(struct mmc_host *host)
 			mmc_hostname(host), __func__, err);
 		mmc_card_set_removed(host->card);
 		mmc_detect_change(host, msecs_to_jiffies(200));
+	} else if (err) {
+		goto out;
 	}
 	mmc_card_clr_suspended(host->card);
 
@@ -1346,21 +1348,11 @@ static int mmc_sd_resume(struct mmc_host *host)
 
 	MMC_TRACE(host, "%s: Enter\n", __func__);
 	err = _mmc_sd_resume(host);
-	if (err) {
-		pr_err("%s: sd resume err: %d\n", mmc_hostname(host), err);
-		if (host->ops->get_cd && !host->ops->get_cd(host)) {
-			err = -ENOMEDIUM;
-			mmc_card_set_removed(host->card);
-		}
-	}
-
-	if (err != -ENOMEDIUM) {
-		pm_runtime_set_active(&host->card->dev);
-		pm_runtime_mark_last_busy(&host->card->dev);
-		pm_runtime_enable(&host->card->dev);
-	}
-
+	pm_runtime_set_active(&host->card->dev);
+	pm_runtime_mark_last_busy(&host->card->dev);
+	pm_runtime_enable(&host->card->dev);
 	MMC_TRACE(host, "%s: Exit err: %d\n", __func__, err);
+
 	return err;
 }
 
