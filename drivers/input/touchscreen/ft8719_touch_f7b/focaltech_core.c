@@ -57,6 +57,7 @@
 /*****************************************************************************
 * Global variable or extern global variabls/functions
 *****************************************************************************/
+extern char *saved_command_line;
 struct fts_ts_data *fts_data;
 
 /*****************************************************************************
@@ -1857,13 +1858,13 @@ static int __init fts_ts_init(void)
 	int ret = 0;
 
 	FTS_FUNC_ENTER();
-	if (IS_ERR_OR_NULL(g_lcd_id)){
-		FTS_ERROR("g_lcd_id is ERROR!\n");
+	if (IS_ERR_OR_NULL(saved_command_line)){
+		FTS_ERROR("saved_command_line ERROR!\n");
 		goto err_lcd;
 	} else {
-		if (strstr(g_lcd_id,"ft8719 video mode dsi tianma panel") != NULL) {
+		if (strstr(saved_command_line,"tianma") != NULL) {
 			FTS_INFO("LCM is right! [Vendor]tianma [IC]ft8719\n");
-		} else if (strstr(g_lcd_id,"nt36672a video mode dsi shenchao panel") != NULL) {
+		} else if (strstr(saved_command_line,"shenchao") != NULL) {
 			FTS_ERROR("LCM is right! [Vendor]shenchao [IC] nt36672a\n");
 			goto err_lcd;
 		} else {

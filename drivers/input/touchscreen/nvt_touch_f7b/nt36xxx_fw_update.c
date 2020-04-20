@@ -33,7 +33,6 @@
 #define BLOCK_64KB_NUM 4
 
 const struct firmware *fw_entry = NULL;
-extern char g_lcd_id[128];
 
 /*******************************************************
 Description:
@@ -851,10 +850,8 @@ static int update_tp_info(void)
 	}
 
 	NVT_LOG("updata tp info IC FW Ver = 0x%02X\n", buf[1]);
-	if (strstr(g_lcd_id,"nt36672a video mode dsi shenchao panel") != NULL) {
+	if (strstr(saved_command_line,"shenchao") != NULL) {
 		sprintf(tp_info_buf, "[Vendor]shenchao,[FW]0x%02x,[IC]nt36672a\n", buf[1]);
-	} else if (strstr(g_lcd_id,"nt36672a video mode dsi tianma panel") != NULL) {
-		sprintf(tp_info_buf, "[Vendor]tianma,[FW]0x%02x,[IC]nt36672a\n", buf[1]);
 	} else {
 		return -ENODEV;
 	}
@@ -1025,13 +1022,9 @@ void Boot_Update_Firmware(struct work_struct *work)
 	int32_t ret = 0;
 
 	char firmware_name[256] = "";
-	LOGV("g_lcd_id = %s\n", g_lcd_id);
-	if (strstr(g_lcd_id,"nt36672a video mode dsi shenchao panel") != NULL) {
+	if (strstr(saved_command_line,"shenchao") != NULL) {
 		sprintf(firmware_name, BOOT_UPDATE_FIRMWARE_NAME_SHENCHAO);
 		NVT_LOG("firmware version is shenchao. \n");
-	}else if (strstr(g_lcd_id,"nt36672a video mode dsi tianma panel") != NULL) {
-		sprintf(firmware_name, BOOT_UPDATE_FIRMWARE_NAME_TIANMA);
-		NVT_LOG("firmware version is tianma. \n");
 	}else {
 		sprintf(firmware_name, "Unknow");
 		NVT_LOG("firmware version is unkonw. \n");

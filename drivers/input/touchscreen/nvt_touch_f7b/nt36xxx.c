@@ -40,10 +40,11 @@
 #if NVT_TOUCH_ESD_PROTECT
 #include <linux/jiffies.h>
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
+
+extern char *saved_command_line;
+
 #include "../lct_tp_gesture.h"
 #include "../lct_tp_grip_area.h"
-char g_lcd_id[128];
-EXPORT_SYMBOL(g_lcd_id);
 extern int lct_nvt_tp_info_node_init(void);
 
 static void tp_fb_notifier_resume_work(struct work_struct *work);
@@ -1841,20 +1842,22 @@ static int32_t __init nvt_driver_init(void)
 	int32_t ret = 0;
 
 	NVT_LOG("start\n");
-	if (IS_ERR_OR_NULL(g_lcd_id)){
-		NVT_ERR("g_lcd_id is ERROR!\n");
-		goto err_lcd;
+
+	if (IS_ERR_OR_NULL(saved_command_line)){
+		NVT_ERR("saved_command_line ERROR!\n");
+		goto err_driver;
 	} else {
-		if (strstr(g_lcd_id,"nt36672a video mode dsi shenchao panel") != NULL) {
-			NVT_LOG("LCM is right! [Vendor]shenchao [IC] nt36672a\n");
-		} else if (strstr(g_lcd_id,"ft8719 video mode dsi tianma panel") != NULL) {
+		if (strstr(saved_command_line,"shenchao") != NULL) {
+			NVT_LOG("TP info: [Vendor]shenchao [IC]nt36672a\n");
+		} else if (strstr(saved_command_line,"tianma") != NULL) {
 			NVT_ERR("LCM is right! [Vendor]tianma [IC]ft8719\n");
 			goto err_lcd;
 		} else {
-			NVT_ERR("Unknown LCM!\n");
-			goto err_lcd;
+			NVT_ERR("Unknow Touch\n");
+			goto err_driver;
 		}
 	}
+
 	ret = i2c_add_driver(&nvt_i2c_driver);
 	if (ret) {
 		pr_err("%s: failed to add i2c driver", __func__);

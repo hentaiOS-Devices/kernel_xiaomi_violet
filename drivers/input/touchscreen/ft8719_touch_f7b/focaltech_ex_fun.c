@@ -1044,15 +1044,14 @@ int lct_fts_tp_info_node_init(void)
 	char tp_lockdown_info_buf[64];
 	fw_ver = fts_get_xiaomi_lockdown_info();
 	memset(tp_info_buf, 0, sizeof(tp_info_buf));
-	if (IS_ERR_OR_NULL(g_lcd_id)){
-		FTS_ERROR("g_lcd_id is ERROR!\n");
+	if (IS_ERR_OR_NULL(saved_command_line)){
+		FTS_ERROR("saved_command_line ERROR!\n");
 		goto tp_node_init;
 	} else {
-		FTS_INFO("LCM information : %s\n", g_lcd_id);
-		if (strstr(g_lcd_id,"nt36672a video mode dsi shenchao panel") != NULL) {
+		if (strstr(saved_command_line,"shenchao") != NULL) {
 			sprintf(tp_info_buf, "[Vendor]shenchao,[FW]0x%02x,[IC]nt36672a\n", fw_ver);
 			goto tp_node_init;
-		} else if (strstr(g_lcd_id,"ft8719 video mode dsi tianma panel") != NULL) {
+		} else if (strstr(saved_command_line,"tianma") != NULL) {
 			sprintf(tp_info_buf, "[Vendor]tianma,[FW]0x%02x,[IC]ft8719\n", fw_ver);
 			goto tp_node_init;
 		} else {

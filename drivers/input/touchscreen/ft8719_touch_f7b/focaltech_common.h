@@ -35,7 +35,6 @@
 #include "focaltech_config.h"
 #include "../lct_tp_info.h"
 #include "../lct_ctp_selftest.h"
-extern char g_lcd_id[128];
 extern int lct_fts_tp_info_node_init(void);
 
 /*****************************************************************************
