@@ -879,6 +879,9 @@ config SND_SOC_TAS5720
 	  Enable support for Texas Instruments TAS5720L/M high-efficiency mono
 	  Class-D audio power amplifiers.
 
+config SND_SOC_TAS2563
+	tristate "Texas Instruments TAS2563 speaker amplifier"
+
 config SND_SOC_TFA9879
 	tristate "NXP Semiconductors TFA9879 amplifier"
 	depends on I2C
@@ -1178,3 +1181,5 @@ config SND_SOC_TPA6130A2
 	depends on I2C
 
 endmenu
+
+source "sound/soc/codecs/tas2563/Kconfig"
