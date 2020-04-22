@@ -82,7 +82,6 @@ static DEFINE_MUTEX(device_list_lock);
 static struct wakeup_source fp_ws;//for kernel 4.9
 static struct gf_dev gf;
 
-extern int fpsensor;
 static struct proc_dir_entry *proc_entry;
 
 #if 0
@@ -566,12 +565,6 @@ static long gf_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long a
 }
 #endif /*CONFIG_COMPAT*/
 
- static void notification_work(struct work_struct *work)
-{
-	pr_debug("%s unblank\n", __func__);
-	dsi_bridge_interface_enable(FP_UNLOCK_REJECTION_TIMEOUT);
-}
-
 static int gf_open(struct inode *inode, struct file *filp)
 {
 	struct gf_dev *gf_dev = &gf;
@@ -771,7 +764,6 @@ static int gf_probe(struct platform_device *pdev)
 	gf_dev->device_available = 0;
 	gf_dev->fb_black = 0;
 	gf_dev->wait_finger_down = false;
-	INIT_WORK(&gf_dev->work, notification_work);
 
 	/* If we can allocate a minor number, hook up this device.
 	 * Reusing minors is fine so long as udev or mdev is working.
@@ -927,8 +919,8 @@ static int __init gf_init(void)
 	 * that will key udev/mdev to add/remove /dev nodes.  Last, register
 	 * the driver which manages those device numbers.
 	 */
-	if(fpsensor != 2) {
-    	pr_err(" hml gf_init failed as fpsensor = %d(2=gdx)\n", fpsensor);
+	if (strstr(saved_command_line,"fpc") != NULL) {
+    	pr_err(" gf_init failed as your fpsensor is fpc ");
         return -1;
     }
 
