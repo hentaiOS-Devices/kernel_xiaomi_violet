@@ -1,5 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
-
 &pm6150l_lcdb {
 	/delete-property/ qcom,voltage-step-ramp;
 };
@@ -20,16 +18,6 @@
 &pm6150l_torch1 {
 	qcom,max-current = <900>;
 	qcom,current-ma = <100>;
-};
-
-&flash_led {
-	qcom,flashlight_0{
-		label = "flashlight";
-		qcom,led-name = "flashlight";
-		qcom,torch-name = "led:torch_0","led:torch_1";
-		qcom,switch-name = "led:switch_0";
-		qcom,id = <0>;
-	};
 };
 
 &pm6150l_wled {

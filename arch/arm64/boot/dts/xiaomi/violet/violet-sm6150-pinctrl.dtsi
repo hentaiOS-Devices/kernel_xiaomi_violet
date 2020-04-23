@@ -1,5 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
-
 &tlmm {
 	msm_gpio_101:msm_gpio_101 {
 		mux{
@@ -58,7 +56,7 @@
 
 			config {
 				pins = "gpio108", "gpio109";
-				drive-strength = <2>;   /* 2 mA */
+				drive-strength = <2>;
 				bias-disable;
 			};
 		};
@@ -71,7 +69,7 @@
 
 			config {
 				pins = "gpio108", "gpio109";
-				drive-strength = <8>;   /* 8 mA */
+				drive-strength = <8>;
 				bias-disable;
 				output-high;
 			};
@@ -89,7 +87,7 @@
 
 			config {
 				pins = "gpio110";
-				drive-strength = <2>;   /* 2 mA */
+				drive-strength = <2>;
 				bias-pull-up;
 			};
 		};
@@ -102,7 +100,7 @@
 
 			config {
 				pins = "gpio110";
-				drive-strength = <8>;   /* 8 mA */
+				drive-strength = <8>;
 				input-enable;
 				bias-disable;
 			};
@@ -120,7 +118,7 @@
 
 			config {
 				pins = "gpio111";
-				drive-strength = <2>;   /* 2 mA */
+				drive-strength = <2>;
 				bias-disable;
 			};
 		};
@@ -133,7 +131,7 @@
 
 			config {
 				pins = "gpio111";
-				drive-strength = <8>;   /* 8 mA */
+				drive-strength = <8>;
 				output-high;
 				bias-disable;
 			};

@@ -1,9 +1,10 @@
-/* SPDX-License-Identifier: GPL-2.0 */
-
 &soc {
 	/delete-node/ qcom,camera-flash@1;
 	/delete-node/ qcom,camera-flash@2;
 	/delete-node/ qcom,camera-flash@3;
+	qcom,cam-icp {
+		/delete-property/ icp_pc_en;
+	};
 };
 
 &camera_vana0_ldo {

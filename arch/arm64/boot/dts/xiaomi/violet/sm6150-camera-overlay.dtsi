@@ -1,5 +1,0 @@
-&soc {
-	qcom,cam-icp {
-		/delete-property/ icp_pc_en;
-	};
-};
