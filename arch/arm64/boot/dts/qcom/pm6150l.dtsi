@@ -282,15 +282,6 @@
 				status = "disabled";
 			};
 
-			/*add flashlight node*/
-			qcom,flashlight_0{
-				label = "flashlight";
-				qcom,led-name = "flashlight";
-				qcom,torch-name = "led:torch_0","led:torch_1";
-				qcom,switch-name = "led:switch_0";
-				qcom,id = <0>;
-			};
-
 			pm6150l_switch0: qcom,led_switch_0 {
 				label = "switch";
 				qcom,led-name = "led:switch_0";
@@ -324,11 +315,8 @@
 			interrupt-names = "ovp-irq", "pre-flash-irq",
 					  "flash-irq";
 			qcom,pmic-revid = <&pm6150l_revid>;
-			qcom,fs-current-limit = <20000>;
 			qcom,auto-calibration;
-			qcom,en-cabc;
-			qcom,cabc-sel = <1>;
-			status = "ok";
+			status = "disabled";
 
 			wled_flash: qcom,wled-flash {
 				label = "flash";
