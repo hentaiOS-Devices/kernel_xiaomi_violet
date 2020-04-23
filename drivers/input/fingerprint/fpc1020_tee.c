@@ -94,7 +94,6 @@ struct fpc1020_data {
 	struct mutex lock; /* To set/get exported values in sysfs */
 	bool prepared;
 	atomic_t wakeup_enabled; /* Used both in ISR and non-ISR */
-	struct notifier_block fb_notifier;
 	bool fb_black;
 	bool wait_finger_down;
 	struct work_struct work;
@@ -522,7 +521,6 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	if (fpc1020->wait_finger_down && fpc1020->fb_black) {
 		//printk("%s enter\n", __func__);
 		fpc1020->wait_finger_down = false;
-		schedule_work(&fpc1020->work);
 	}  
 	return IRQ_HANDLED;
 }
@@ -550,43 +548,6 @@ static int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
 	return 0;
 }
 
-static int fpc_fb_notif_callback(struct notifier_block *nb,
-		unsigned long val, void *data)
-{
-	struct fpc1020_data *fpc1020 = container_of(nb, struct fpc1020_data,
-			fb_notifier);
-	struct fb_event *evdata = data;
-	unsigned int blank;
-
-	if (!fpc1020)
-		return 0;
-
-	if (val != MSM_DRM_EVENT_BLANK )
-		return 0;
-
-	printk("hml [info] %s value = %d\n", __func__, (int)val);
-
-	if (evdata && evdata->data && val == MSM_DRM_EVENT_BLANK) {
-		blank = *(int *)(evdata->data);
-		switch (blank) {
-		case MSM_DRM_BLANK_POWERDOWN:
-			fpc1020->fb_black = true;
-			break;
-		case MSM_DRM_BLANK_UNBLANK:
-			fpc1020->fb_black = false;
-			break;
-		default:
-			printk("%s defalut\n", __func__);
-			break;
-		}
-	}
-	return NOTIFY_OK;
-}
-
-
-static struct notifier_block fpc_notif_block = {
-	.notifier_call = fpc_fb_notif_callback,
-};
 
 static int proc_show_ver(struct seq_file *file,void *v)
 {
@@ -740,7 +701,6 @@ exit:
 static int fpc1020_remove(struct platform_device *pdev)
 {
 	struct fpc1020_data *fpc1020 = platform_get_drvdata(pdev);
-	msm_drm_unregister_client(&fpc1020->fb_notifier);
 	sysfs_remove_group(&pdev->dev.kobj, &attribute_group);
 	mutex_destroy(&fpc1020->lock);
 	//wake_lock_destroy(&fpc1020->ttw_wl);
