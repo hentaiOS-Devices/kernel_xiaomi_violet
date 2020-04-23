@@ -37,8 +37,7 @@
 			qcom,supply-max-voltage = <1800000>;
 			qcom,supply-enable-load = <62000>;
 			qcom,supply-disable-load = <80>;
-			qcom,supply-post-on-sleep = <1>;
-			qcom,supply-pre-off-sleep = <15>;
+			qcom,supply-post-on-sleep = <20>;
 		};
 
 		qcom,panel-supply-entry@1 {
@@ -48,7 +47,6 @@
 			qcom,supply-max-voltage = <6000000>;
 			qcom,supply-enable-load = <100000>;
 			qcom,supply-disable-load = <100>;
-			qcom,supply-post-on-sleep = <3>;
 		};
 
 		qcom,panel-supply-entry@2 {
@@ -58,7 +56,7 @@
 			qcom,supply-max-voltage = <6000000>;
 			qcom,supply-enable-load = <100000>;
 			qcom,supply-disable-load = <100>;
-			qcom,supply-pre-off-sleep = <4>;
+			qcom,supply-post-on-sleep = <20>;
 		};
 	};
 
@@ -219,9 +217,7 @@
 
 		qcom,dsi-ctrl-num = <0>;
 		qcom,dsi-phy-num = <0>;
-		qcom,dsi-select-clocks = "mux_byte_clk0", "mux_pixel_clk0",
-			"src_byte_clk0", "src_pixel_clk0",
-			"shadow_byte_clk0", "shadow_pixel_clk0";
+		qcom,dsi-select-clocks = "mux_byte_clk0", "mux_pixel_clk0";
 
 		qcom,dsi-panel = <&dsi_nt36672a_shenchao_video>;
 	};
@@ -232,9 +228,7 @@
 
 		qcom,dsi-ctrl-num = <0>;
 		qcom,dsi-phy-num = <0>;
-		qcom,dsi-select-clocks = "mux_byte_clk0", "mux_pixel_clk0",
-			"src_byte_clk0", "src_pixel_clk0",
-			"shadow_byte_clk0", "shadow_pixel_clk0";
+		qcom,dsi-select-clocks = "mux_byte_clk0", "mux_pixel_clk0";
 
 		qcom,dsi-panel = <&dsi_ft8719_tianma_video>;
 	};
@@ -474,12 +468,6 @@
 &dsi_nt36672a_shenchao_video {
     qcom,mdss-dsi-t-clk-post = <0x0f>;
 	qcom,mdss-dsi-t-clk-pre = <0x37>;
-	qcom,esd-check-enabled;
-	qcom,mdss-dsi-panel-status-check-mode = "reg_read";
-	qcom,mdss-dsi-panel-status-command = [06 01 00 01 05 00 01 0A];
-	qcom,mdss-dsi-panel-status-command-state = "dsi_hs_mode";
-	qcom,mdss-dsi-panel-status-value = <0x9c>;
-	qcom,mdss-dsi-panel-status-read-length = <1>;
 	qcom,mdss-dsi-display-timings {
 		timing@0{
 			qcom,mdss-dsi-panel-phy-timings =
@@ -497,12 +485,6 @@
 &dsi_ft8719_tianma_video {
 	qcom,mdss-dsi-t-clk-post = <0x0f>;
 	qcom,mdss-dsi-t-clk-pre = <0x37>;
-	qcom,esd-check-enabled;
-	qcom,mdss-dsi-panel-status-check-mode = "reg_read";
-	qcom,mdss-dsi-panel-status-command = [06 01 00 01 05 00 01 0A];
-	qcom,mdss-dsi-panel-status-command-state = "dsi_hs_mode";
-	qcom,mdss-dsi-panel-status-value = <0x9c>;
-	qcom,mdss-dsi-panel-status-read-length = <1>;
 	qcom,mdss-dsi-display-timings {
 		timing@0{
 			qcom,mdss-dsi-panel-phy-timings =
