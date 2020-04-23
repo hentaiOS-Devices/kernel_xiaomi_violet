@@ -625,7 +625,7 @@ static int fpc1020_probe(struct platform_device *pdev)
 	}
 
 	if (strstr(saved_command_line,"goodix") != NULL) {
-        pr_err("Macle fpc1020_probe failed as your fingerprint sensor is goodix");
+        pr_info("Macle fpc1020_probe failed as your fingerprint sensor is goodix");
         return -1;
     }
 

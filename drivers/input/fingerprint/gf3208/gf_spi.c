@@ -920,7 +920,7 @@ static int __init gf_init(void)
 	 * the driver which manages those device numbers.
 	 */
 	if (strstr(saved_command_line,"fpc") != NULL) {
-    	pr_err(" gf_init failed as your fpsensor is fpc ");
+    	pr_info(" gf_init failed as your fpsensor is fpc ");
         return -1;
     }
 
