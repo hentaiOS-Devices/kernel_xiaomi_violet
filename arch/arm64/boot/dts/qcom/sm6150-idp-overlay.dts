@@ -26,25 +26,6 @@
 	qcom,board-id = <34 0>;
 };
 
-&dsi_ft8719_tianma_vid_display {
+&dsi_hx83112a_truly_vid_display {
 	qcom,dsi-display-active;
-};
-
-&dsi_nt36672a_shenchao_vid_display {
-	qcom,dsi-display-active;
-};
-
-&sdhc_2 {
-	cd-gpios = <&tlmm 99 0>;
-};
-
-&pm6150_qg {
-	qcom,s3-entry-ibat-ua = <18000>;
-	qcom,s3-exit-ibat-ua = <38000>;
-	qcom,vbatt-cutoff-mv = <3400>;
-};
-
-&pm6150_pdphy{
-	qcom,default-sink-caps = <5000 3000>, /* 5V @ 3A */
-						 <9000 3000>; /* 9V @ 3A */
 };
