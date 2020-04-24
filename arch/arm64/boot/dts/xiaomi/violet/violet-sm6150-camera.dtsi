@@ -1,7 +1,16 @@
+/* Copyright (c) 2020, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 &soc {
-	/delete-node/ qcom,camera-flash@1;
-	/delete-node/ qcom,camera-flash@2;
-	/delete-node/ qcom,camera-flash@3;
 	qcom,cam-icp {
 		/delete-property/ icp_pc_en;
 	};
@@ -20,15 +29,6 @@
 	qcom,actuator@1 {
 		reg = <0x1>;
 	};
-
-	/delete-node/ qcom,actuator@2;
-	/delete-node/ qcom,actuator@3;
-	/delete-node/ qcom,eeprom@3;
-	/delete-node/ qcom,cam-sensor@3;
-	/delete-node/ qcom,cam-sensor@4;
-	/delete-node/ qcom,cam-sensor@5;
-	/delete-node/ qcom,cam-sensor@6;
-
 	qcom,cam-sensor@0 {
 		csiphy-sd-index = <1>;
 		/delete-property/ led-flash-src;

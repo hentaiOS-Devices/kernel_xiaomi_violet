@@ -1,21 +1,17 @@
+/* Copyright (c) 2020, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include "display/dsi-panel-ft8719-tianma-fhd-video.dtsi"
 #include "display/dsi-panel-nt36672a-shenchao-fhd-video.dtsi"
-
-&dsi_panel_pwr_supply {
-	qcom,panel-supply-entry@0 {
-		qcom,supply-post-on-sleep = <1>;
-		qcom,supply-pre-off-sleep = <15>;
-	};
-
-	qcom,panel-supply-entry@1 {
-		qcom,supply-post-on-sleep = <3>;
-	};
-
-	qcom,panel-supply-entry@2 {
-		/delete-property/ qcom,supply-post-on-sleep;
-		qcom,supply-pre-off-sleep = <4>;
-	};
-};
 
 &soc {
 	dsi_ft8719_tianma_vid_display: qcom,dsi-display@10 {
@@ -47,9 +43,6 @@
 	qcom,mdss-dsi-t-clk-post = <0x0f>;
 	qcom,mdss-dsi-t-clk-pre = <0x37>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
-	qcom,mdss-dsi-bl-min-level = <1>;
-	qcom,mdss-dsi-bl-max-level = <4095>;
 	qcom,platform-te-gpio = <&tlmm 90 0>;
 	qcom,platform-reset-gpio = <&tlmm 91 0>;
 	qcom,mdss-dsi-display-timings {
@@ -70,9 +63,6 @@
 	qcom,mdss-dsi-t-clk-post = <0x0f>;
 	qcom,mdss-dsi-t-clk-pre = <0x37>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
-	qcom,mdss-dsi-bl-min-level = <1>;
-	qcom,mdss-dsi-bl-max-level = <4095>;
 	qcom,platform-te-gpio = <&tlmm 90 0>;
 	qcom,platform-reset-gpio = <&tlmm 91 0>;
 	qcom,mdss-dsi-display-timings {
