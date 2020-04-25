@@ -159,6 +159,9 @@ typedef enum {
 //---extern structures---
 extern struct nvt_ts_data *ts;
 
+/* Command Line */
+extern char *saved_command_line;
+
 //---extern functions---
 extern int32_t CTP_I2C_READ(struct i2c_client *client, uint16_t address, uint8_t *buf, uint16_t len);
 extern int32_t CTP_I2C_WRITE(struct i2c_client *client, uint16_t address, uint8_t *buf, uint16_t len);

@@ -850,11 +850,13 @@ static int update_tp_info(void)
 	}
 
 	NVT_LOG("updata tp info IC FW Ver = 0x%02X\n", buf[1]);
-	if (strstr(saved_command_line,"shenchao") != NULL) {
+
+	if (strstr(saved_command_line, "shenchao")) {
 		sprintf(tp_info_buf, "[Vendor]shenchao,[FW]0x%02x,[IC]nt36672a\n", buf[1]);
 	} else {
 		return -ENODEV;
 	}
+
 	update_lct_tp_info(tp_info_buf,NULL);
 	return 0;
 }
@@ -1022,13 +1024,15 @@ void Boot_Update_Firmware(struct work_struct *work)
 	int32_t ret = 0;
 
 	char firmware_name[256] = "";
-	if (strstr(saved_command_line,"shenchao") != NULL) {
+
+	if (strstr(saved_command_line, "shenchao")) {
 		sprintf(firmware_name, BOOT_UPDATE_FIRMWARE_NAME_SHENCHAO);
 		NVT_LOG("firmware version is shenchao. \n");
-	}else {
+	} else {
 		sprintf(firmware_name, "Unknow");
 		NVT_LOG("firmware version is unkonw. \n");
 	}
+
 	ret = update_firmware_request(firmware_name);
 	if (ret) {
 		NVT_ERR("update_firmware_request failed. (%d)\n", ret);

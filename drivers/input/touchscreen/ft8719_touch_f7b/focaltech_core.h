@@ -244,6 +244,9 @@ int fts_upgrade_bin(struct i2c_client *client, char *fw_name, bool force);
 int fts_fwupg_init(struct fts_ts_data *ts_data);
 int fts_fwupg_exit(struct fts_ts_data *ts_data);
 
+/* Command Line */
+extern char *saved_command_line;
+
 /* Other */
 int fts_reset_proc(int hdelayms);
 int fts_wait_tp_to_valid(struct i2c_client *client);

@@ -41,8 +41,6 @@
 #include <linux/jiffies.h>
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
-extern char *saved_command_line;
-
 #include "../lct_tp_gesture.h"
 #include "../lct_tp_grip_area.h"
 extern int lct_nvt_tp_info_node_init(void);
@@ -1843,19 +1841,14 @@ static int32_t __init nvt_driver_init(void)
 
 	NVT_LOG("start\n");
 
-	if (IS_ERR_OR_NULL(saved_command_line)){
-		NVT_ERR("saved_command_line ERROR!\n");
-		goto err_driver;
+	if (strstr(saved_command_line, "shenchao")) {
+		NVT_LOG("TP info: [Vendor]shenchao [IC]nt36672a\n");
+	} else if (strstr(saved_command_line, "tianma")) {
+		NVT_ERR("LCM is right! [Vendor]tianma [IC]ft8719\n");
+		goto err_lcd;
 	} else {
-		if (strstr(saved_command_line,"shenchao") != NULL) {
-			NVT_LOG("TP info: [Vendor]shenchao [IC]nt36672a\n");
-		} else if (strstr(saved_command_line,"tianma") != NULL) {
-			NVT_ERR("LCM is right! [Vendor]tianma [IC]ft8719\n");
-			goto err_lcd;
-		} else {
-			NVT_ERR("Unknow Touch\n");
-			goto err_driver;
-		}
+		NVT_ERR("Unknow Touch\n");
+		goto err_driver;
 	}
 
 	ret = i2c_add_driver(&nvt_i2c_driver);

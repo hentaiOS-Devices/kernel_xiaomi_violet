@@ -57,7 +57,6 @@
 /*****************************************************************************
 * Global variable or extern global variabls/functions
 *****************************************************************************/
-extern char *saved_command_line;
 struct fts_ts_data *fts_data;
 
 /*****************************************************************************
@@ -1858,20 +1857,17 @@ static int __init fts_ts_init(void)
 	int ret = 0;
 
 	FTS_FUNC_ENTER();
-	if (IS_ERR_OR_NULL(saved_command_line)){
-		FTS_ERROR("saved_command_line ERROR!\n");
+
+	if (strstr(saved_command_line, "tianma")) {
+		FTS_INFO("LCM is right! [Vendor]tianma [IC]ft8719\n");
+	} else if (strstr(saved_command_line, "shenchao")) {
+		FTS_ERROR("LCM is right! [Vendor]shenchao [IC] nt36672a\n");
 		goto err_lcd;
 	} else {
-		if (strstr(saved_command_line,"tianma") != NULL) {
-			FTS_INFO("LCM is right! [Vendor]tianma [IC]ft8719\n");
-		} else if (strstr(saved_command_line,"shenchao") != NULL) {
-			FTS_ERROR("LCM is right! [Vendor]shenchao [IC] nt36672a\n");
-			goto err_lcd;
-		} else {
-			FTS_ERROR("Unknown LCM!\n");
-			goto err_lcd;
-		}
+		FTS_ERROR("Unknown LCM!\n");
+		goto err_lcd;
 	}
+
 	ret = i2c_add_driver(&fts_ts_driver);
 	if ( ret != 0 ) {
 		FTS_ERROR("Focaltech touch screen driver init failed!");
