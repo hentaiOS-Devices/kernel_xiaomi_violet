@@ -36,13 +36,11 @@
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
-//#include <linux/wakelock.h>
 #include <linux/proc_fs.h>
 #include <linux/notifier.h>
 #include <linux/fb.h>
 #include <drm/drm_bridge.h>
 #include <linux/msm_drm_notify.h>
-
 
 #define FPC_TTW_HOLD_TIME 2000
 #define FP_UNLOCK_REJECTION_TIMEOUT (FPC_TTW_HOLD_TIME - 500)
@@ -60,6 +58,9 @@
 
 #define tyt_debug printk("tyt %s:%d\n",__func__,__LINE__) 
 static struct proc_dir_entry *proc_entry;
+
+// Commandline
+extern char *saved_command_line;
 
 static const char * const pctl_names[] = {
 	"fpc1020_reset_reset",
@@ -585,10 +586,10 @@ static int fpc1020_probe(struct platform_device *pdev)
 		goto exit;
 	}
 
-	if (strstr(saved_command_line,"goodix") != NULL) {
-        pr_info("Macle fpc1020_probe failed as your fingerprint sensor is goodix");
-        return -1;
-    }
+	if (strstr(saved_command_line, "gdx")) {
+		pr_info("Your FP scanner is goodix FPC is disabling");
+		return -1;
+	}
 
 
 	fpc1020->dev = dev;

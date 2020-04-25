@@ -84,6 +84,9 @@ static struct gf_dev gf;
 
 static struct proc_dir_entry *proc_entry;
 
+// Commandline
+extern char *saved_command_line;
+
 #if 0
 static struct gf_key_map maps[] = {
 	{ EV_KEY, GF_KEY_INPUT_HOME },
@@ -919,10 +922,10 @@ static int __init gf_init(void)
 	 * that will key udev/mdev to add/remove /dev nodes.  Last, register
 	 * the driver which manages those device numbers.
 	 */
-	if (strstr(saved_command_line,"fpc") != NULL) {
-    	pr_info(" gf_init failed as your fpsensor is fpc ");
-        return -1;
-    }
+	if (strstr(saved_command_line, "fpc")) {
+		pr_info("Your FP scanner is FPC goodix is disabling");
+		return -1;
+	}
 
 	BUILD_BUG_ON(N_SPI_MINORS > 256);
 	status = register_chrdev(SPIDEV_MAJOR, CHRD_DRIVER_NAME, &gf_fops);
