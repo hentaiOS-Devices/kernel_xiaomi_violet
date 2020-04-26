@@ -22,7 +22,7 @@
 	sdm-therm {
 		trips {
 			shutdown-config {
-				temperature = <60000>;
+				temperature = <63000>;
 				hysteresis = <1000>;
 				type = "critical";
 			};
