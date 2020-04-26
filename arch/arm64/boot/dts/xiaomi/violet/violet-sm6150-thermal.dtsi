@@ -42,4 +42,39 @@
 			};
 		};
 	};
+
+	soc {
+		cooling-maps {
+			soc_cpu5 {
+				trip = <&soc_trip>;
+				cooling-device =
+					<&CPU5 10 10>;
+			};
+			soc_cpu6 {
+				trip = <&soc_trip>;
+				cooling-device =
+					<&CPU6 10 10>;
+			};
+			soc_cpu7 {
+				trip = <&soc_trip>;
+				cooling-device =
+					<&CPU7 10 10>;
+			};
+		};
+	};
+
+	pm6150-bcl-lvl0 {
+		cooling-maps {
+			vbat_cpu6 {
+				trip = <&bcl_lvl0>;
+				cooling-device =
+					<&CPU6 10 10>;
+			};
+			vbat_cpu7 {
+				trip = <&bcl_lvl0>;
+				cooling-device =
+					<&CPU7 10 10>;
+			};
+		};
+	};
 };
