@@ -33,7 +33,6 @@
 		vcc_spi-supply  = <&pm6150l_l10>;
 		vdd_io-supply   = <&pm6150l_l10>;
 		vdd_ana-supply  = <&pm6150l_l10>;
-
 		pinctrl-names = "fpc1020_reset_reset",
 			"fpc1020_reset_active",
 			"fpc1020_irq_active";

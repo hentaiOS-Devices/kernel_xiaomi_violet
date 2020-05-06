@@ -14,7 +14,7 @@
 #include "display/dsi-panel-nt36672a-shenchao-fhd-video.dtsi"
 
 &soc {
-	dsi_ft8719_tianma_vid_display: qcom,dsi-display@10 {
+	dsi_ft8719_tianma_vid_display: qcom,dsi-display@0 {
 		label = "dsi_ft8719_tianma_vid_display";
 		qcom,display-type = "primary";
 		qcom,dsi-ctrl-num = <0>;
@@ -23,7 +23,7 @@
 		qcom,dsi-panel = <&dsi_ft8719_tianma_video>;
 	};
 
-    dsi_nt36672a_shenchao_vid_display: qcom,dsi-display@11 {
+    dsi_nt36672a_shenchao_vid_display: qcom,dsi-display@1 {
 		label = "dsi_nt36672a_shenchao_vid_display";
 		qcom,display-type = "primary";
 		qcom,dsi-ctrl-num = <0>;
@@ -48,11 +48,11 @@
 	qcom,mdss-dsi-display-timings {
 		timing@0{
 			qcom,mdss-dsi-panel-phy-timings =
-			[26 21 09 0b 06 02 04 a0
-                         26 21 09 0b 06 02 04 a0
-                         26 21 09 0b 06 02 04 a0
-                         26 21 09 0b 06 02 04 a0
-                         26 20 0a 0b 06 02 04 a0];
+				[26 21 09 0b 06 02 04 a0
+				26 21 09 0b 06 02 04 a0
+				26 21 09 0b 06 02 04 a0
+				26 21 09 0b 06 02 04 a0
+				26 20 0a 0b 06 02 04 a0];
 			qcom,display-topology = <1 0 1>;
 			qcom,default-topology-index = <0>;
 		};
@@ -68,13 +68,11 @@
 	qcom,mdss-dsi-display-timings {
 		timing@0{
 			qcom,mdss-dsi-panel-phy-timings =
-                               [
-                               26 21 09 0b 06 02 04 a0
-                               26 21 09 0b 06 02 04 a0
-                               26 21 09 0b 06 02 04 a0
-                               26 21 09 0b 06 02 04 a0
-                               26 20 0a 0b 06 02 04 a0];
-
+				[26 21 09 0b 06 02 04 a0
+				26 21 09 0b 06 02 04 a0
+				26 21 09 0b 06 02 04 a0
+				26 21 09 0b 06 02 04 a0
+				26 20 0a 0b 06 02 04 a0];
 			qcom,display-topology = <1 0 1>;
 			qcom,default-topology-index = <0>;
 		};

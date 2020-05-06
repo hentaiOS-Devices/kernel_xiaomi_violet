@@ -52,13 +52,6 @@
 		};
 	};
 
-	/delete-node/ wsa_swr_clk_pin;
-	/delete-node/ wsa_swr_data_pin;
-	/delete-node/ spkr_1_sd_n;
-	/delete-node/ spkr_2_sd_n;
-
-	/delete-node/ ter_i2s_sck_ws;
-
 	pri_i2s_sck_ws {
 		pri_i2s_sck_sleep: pri_i2s_sck_sleep {
 			mux {
@@ -87,8 +80,6 @@
 			};
 		};
 	};
-	
-	/delete-node/ ter_i2s_data0;
 
 	pri_i2s_data0 {
 		pri_i2s_data0_sleep: pri_i2s_data0_sleep {
@@ -118,8 +109,6 @@
 			};
 		};
 	};
-		
-	/delete-node/ ter_i2s_data1;
 
 	pri_i2s_data1 {
 		pri_i2s_data1_sleep: pri_i2s_data1_sleep {
