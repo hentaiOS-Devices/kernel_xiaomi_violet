@@ -1811,20 +1811,12 @@ static struct i2c_board_info __initdata nvt_i2c_boardinfo[] = {
 static struct i2c_driver nvt_i2c_driver = {
 	.probe		= nvt_ts_probe,
 	.remove		= nvt_ts_remove,
-//	.suspend	= nvt_ts_suspend,
-//	.resume		= nvt_ts_resume,
 	.id_table	= nvt_ts_id,
 	.driver = {
 		.name	= NVT_I2C_NAME,
 		.owner	= THIS_MODULE,
-#if 0
-#ifdef CONFIG_PM
-		.pm = &nvt_ts_dev_pm_ops,
-#endif
-#endif
-#ifdef CONFIG_OF
 		.of_match_table = nvt_match_table,
-#endif
+		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
 	},
 };
 
