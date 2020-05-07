@@ -416,7 +416,7 @@ static int dsi_panel_set_pinctrl_state(struct dsi_panel *panel, bool enable)
 	int rc = 0;
 	struct pinctrl_state *state;
 
-	if (panel->host_config.ext_bridge_mode)
+	if (panel->host_config.ext_bridge_num)
 		return 0;
 
 	if (enable)
@@ -554,7 +554,7 @@ static int dsi_panel_pinctrl_deinit(struct dsi_panel *panel)
 {
 	int rc = 0;
 
-	if (panel->host_config.ext_bridge_mode)
+	if (panel->host_config.ext_bridge_num)
 		return 0;
 
 	devm_pinctrl_put(panel->pinctrl.pinctrl);
@@ -566,7 +566,7 @@ static int dsi_panel_pinctrl_init(struct dsi_panel *panel)
 {
 	int rc = 0;
 
-	if (panel->host_config.ext_bridge_mode)
+	if (panel->host_config.ext_bridge_num)
 		return 0;
 
 	/* TODO:  pinctrl is defined in dsi dt node */
@@ -691,7 +691,7 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 	int rc = 0;
 	struct dsi_backlight_config *bl = &panel->bl_config;
 
-	if (panel->host_config.ext_bridge_mode)
+	if (panel->host_config.ext_bridge_num)
 		return 0;
 
 	pr_debug("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
@@ -772,7 +772,7 @@ static int dsi_panel_bl_register(struct dsi_panel *panel)
 	int rc = 0;
 	struct dsi_backlight_config *bl = &panel->bl_config;
 
-	if (panel->host_config.ext_bridge_mode)
+	if (panel->host_config.ext_bridge_num)
 		return 0;
 
 	switch (bl->type) {
@@ -808,7 +808,7 @@ static int dsi_panel_bl_unregister(struct dsi_panel *panel)
 	int rc = 0;
 	struct dsi_backlight_config *bl = &panel->bl_config;
 
-	if (panel->host_config.ext_bridge_mode)
+	if (panel->host_config.ext_bridge_num)
 		return 0;
 
 	switch (bl->type) {
@@ -836,6 +836,7 @@ static int dsi_panel_parse_timing(struct dsi_mode_info *mode,
 {
 	int rc = 0;
 	u64 tmp64 = 0;
+	u32 val = 0;
 	struct dsi_display_mode *display_mode;
 	struct dsi_display_mode_priv_info *priv_info;
 
@@ -862,6 +863,10 @@ static int dsi_panel_parse_timing(struct dsi_mode_info *mode,
 	}
 	display_mode->priv_info->mdp_transfer_time_us =
 					mode->mdp_transfer_time_us;
+
+	rc = utils->read_u32(utils->data, "qcom,mdss-dsi-overlap-pixels",
+				  &val);
+	priv_info->overlap_pixels = rc ? 0 : val;
 
 	rc = utils->read_u32(utils->data,
 				"qcom,mdss-dsi-panel-framerate",
@@ -1137,6 +1142,51 @@ static int dsi_panel_parse_triggers(struct dsi_host_common_cfg *host,
 	return rc;
 }
 
+static int dsi_panel_parse_ext_bridge_config(struct dsi_host_common_cfg *host,
+					    struct dsi_parser_utils *utils,
+					    const char *name)
+{
+	u32 len = 0, i = 0;
+	int rc = 0;
+
+	host->ext_bridge_num = 0;
+
+	len = utils->count_u32_elems(utils->data, "qcom,mdss-dsi-ext-bridge");
+
+	if (len > MAX_DSI_CTRLS_PER_DISPLAY) {
+		pr_debug("[%s] Invalid ext bridge count set\n", name);
+		return -EINVAL;
+	}
+
+	if (len == 0) {
+		pr_debug("[%s] It's a DSI panel, not bridge\n", name);
+		return rc;
+	}
+
+	rc = utils->read_u32_array(utils->data, "qcom,mdss-dsi-ext-bridge",
+			host->ext_bridge_map,
+			len);
+
+	if (rc) {
+		pr_debug("[%s] Did not get ext bridge set\n", name);
+		return rc;
+	}
+
+	for (i = 0; i < len; i++) {
+		if (host->ext_bridge_map[i] >= MAX_EXT_BRIDGE_PORT_CONFIG) {
+			pr_debug("[%s] Invalid bridge port value %d\n",
+				name, host->ext_bridge_map[i]);
+			return -EINVAL;
+		}
+	}
+
+	host->ext_bridge_num = len;
+
+	pr_debug("[%s] ext bridge count is %d\n", name, host->ext_bridge_num);
+
+	return rc;
+}
+
 static int dsi_panel_parse_misc_host_config(struct dsi_host_common_cfg *host,
 					    struct dsi_parser_utils *utils,
 					    const char *name)
@@ -1162,9 +1212,6 @@ static int dsi_panel_parse_misc_host_config(struct dsi_host_common_cfg *host,
 
 	host->append_tx_eot = utils->read_bool(utils->data,
 						"qcom,mdss-dsi-tx-eot-append");
-
-	host->ext_bridge_mode = utils->read_bool(utils->data,
-					"qcom,mdss-dsi-ext-bridge-mode");
 
 	host->force_hs_clk_lane = utils->read_bool(utils->data,
 					"qcom,mdss-dsi-force-clock-lane-hs");
@@ -1252,6 +1299,13 @@ static int dsi_panel_parse_host_config(struct dsi_panel *panel)
 		pr_err("[%s] failed to parse misc host config, rc=%d\n",
 		       panel->name, rc);
 		goto error;
+	}
+
+	dsi_panel_parse_ext_bridge_config(&panel->host_config, utils,
+					      panel->name);
+	if (rc) {
+		pr_err("[%s] failed to parse ext bridge config, rc=%d\n",
+		       panel->name, rc);
 	}
 
 	dsi_panel_parse_split_link_config(&panel->host_config, utils,
@@ -1917,7 +1971,7 @@ static int dsi_panel_parse_reset_sequence(struct dsi_panel *panel)
 	struct dsi_parser_utils *utils = &panel->utils;
 	struct dsi_reset_seq *seq;
 
-	if (panel->host_config.ext_bridge_mode)
+	if (panel->host_config.ext_bridge_num)
 		return 0;
 
 	arr = utils->get_property(utils->data,
@@ -2036,7 +2090,8 @@ static int dsi_panel_parse_jitter_config(
 				  &priv_info->panel_prefill_lines);
 	if (rc) {
 		pr_debug("panel prefill lines are not defined rc=%d\n", rc);
-		priv_info->panel_prefill_lines = DEFAULT_PANEL_PREFILL_LINES;
+		priv_info->panel_prefill_lines = mode->timing.v_back_porch +
+			mode->timing.v_sync_width + mode->timing.v_front_porch;
 	} else if (priv_info->panel_prefill_lines >=
 					DSI_V_TOTAL(&mode->timing)) {
 		pr_debug("invalid prefill lines config=%d setting to:%d\n",
@@ -2053,7 +2108,7 @@ static int dsi_panel_parse_power_cfg(struct dsi_panel *panel)
 	int rc = 0;
 	char *supply_name;
 
-	if (panel->host_config.ext_bridge_mode)
+	if (panel->host_config.ext_bridge_num)
 		return 0;
 
 	if (!strcmp(panel->type, "primary"))
@@ -2090,7 +2145,7 @@ static int dsi_panel_parse_gpios(struct dsi_panel *panel)
 	panel->reset_config.reset_gpio = utils->get_named_gpio(utils->data,
 					      reset_gpio_name, 0);
 	if (!gpio_is_valid(panel->reset_config.reset_gpio) &&
-		!panel->host_config.ext_bridge_mode) {
+		!panel->host_config.ext_bridge_num) {
 		rc = panel->reset_config.reset_gpio;
 		pr_err("[%s] failed get reset gpio, rc=%d\n", panel->name, rc);
 		goto error;
@@ -2478,8 +2533,12 @@ static int dsi_panel_parse_phy_timing(struct dsi_display_mode *mode,
 	int rc = 0;
 	struct dsi_display_mode_priv_info *priv_info;
 	u64 h_period, v_period;
-	u32 refresh_rate = TICKS_IN_MICRO_SECOND;
+	u64 refresh_rate = TICKS_IN_MICRO_SECOND;
 	struct dsi_mode_info *timing = NULL;
+	u64 pixel_clk_khz;
+
+	if (!mode || !mode->priv_info)
+		return -EINVAL;
 
 	if (!mode || !mode->priv_info)
 		return -EINVAL;
@@ -2514,7 +2573,9 @@ static int dsi_panel_parse_phy_timing(struct dsi_display_mode *mode,
 		refresh_rate = timing->refresh_rate;
 	}
 
-	mode->pixel_clk_khz = (h_period * v_period * refresh_rate) / 1000;
+	pixel_clk_khz = h_period * v_period * refresh_rate;
+	do_div(pixel_clk_khz, 1000);
+	mode->pixel_clk_khz = pixel_clk_khz;
 
 	return rc;
 }
@@ -3213,12 +3274,14 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 	if (rc)
 		pr_err("failed to parse dfps configuration, rc=%d\n", rc);
 
-	if (!(panel->dfps_caps.dfps_support)) {
-		/* qsync and dfps are mutually exclusive features */
-		rc = dsi_panel_parse_qsync_caps(panel, of_node);
-		if (rc)
-			pr_err("failed to parse qsync features, rc=%d\n", rc);
-	}
+	rc = dsi_panel_parse_qsync_caps(panel, of_node);
+	if (rc)
+		pr_err("failed to parse qsync features, rc=%d\n", rc);
+
+	/* allow qsync support only if DFPS is with VFP approach */
+	if ((panel->dfps_caps.dfps_support) &&
+	    !(panel->dfps_caps.type == DSI_DFPS_IMMEDIATE_VFP))
+		panel->qsync_min_fps = 0;
 
 	rc = dsi_panel_parse_dyn_clk_caps(panel);
 	if (rc)
@@ -3246,7 +3309,6 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 		if (rc == -EPROBE_DEFER)
 			goto error;
 	}
-
 
 	rc = dsi_panel_parse_misc_features(panel);
 	if (rc)
@@ -3728,14 +3790,14 @@ int dsi_panel_get_mode_count(struct dsi_panel *panel)
 
 	timings_np = utils->get_child_by_name(utils->data,
 			"qcom,mdss-dsi-display-timings");
-	if (!timings_np && !panel->host_config.ext_bridge_mode) {
+	if (!timings_np && !panel->host_config.ext_bridge_num) {
 		pr_err("no display timing nodes defined\n");
 		rc = -EINVAL;
 		goto error;
 	}
 
 	count = utils->get_child_count(timings_np);
-	if ((!count && !panel->host_config.ext_bridge_mode) ||
+	if ((!count && !panel->host_config.ext_bridge_num) ||
 		count > DSI_MODE_MAX) {
 		pr_err("invalid count of timing nodes: %d\n", count);
 		rc = -EINVAL;
@@ -3744,7 +3806,7 @@ int dsi_panel_get_mode_count(struct dsi_panel *panel)
 
 	/* No multiresolution support is available for video mode panels */
 	if (panel->panel_mode != DSI_OP_CMD_MODE &&
-		!panel->host_config.ext_bridge_mode)
+		!panel->host_config.ext_bridge_num)
 		count = SINGLE_MODE_SUPPORT;
 
 	panel->num_timing_nodes = count;
@@ -3889,6 +3951,13 @@ int dsi_panel_get_mode(struct dsi_panel *panel,
 		rc = dsi_panel_parse_partial_update_caps(mode, utils);
 		if (rc)
 			pr_err("failed to partial update caps, rc=%d\n", rc);
+
+		/*
+		 * No support for pixel overlap in DSC enabled or Partial
+		 * update enabled cases.
+		 */
+		if (prv_info->dsc_enabled || prv_info->roi_caps.enabled)
+			prv_info->overlap_pixels = 0;
 	}
 	goto done;
 
@@ -3933,6 +4002,7 @@ int dsi_panel_get_host_cfg_for_mode(struct dsi_panel *panel,
 			mode->priv_info->mdp_transfer_time_us;
 	config->video_timing.dsc_enabled = mode->priv_info->dsc_enabled;
 	config->video_timing.dsc = &mode->priv_info->dsc;
+	config->video_timing.overlap_pixels = mode->priv_info->overlap_pixels;
 
 	if (dyn_clk_caps->dyn_clk_support)
 		config->bit_clk_rate_hz_override = mode->timing.clk_rate_hz;
