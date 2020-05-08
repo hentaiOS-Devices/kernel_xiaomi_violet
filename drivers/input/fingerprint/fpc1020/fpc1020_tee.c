@@ -586,12 +586,6 @@ static int fpc1020_probe(struct platform_device *pdev)
 		goto exit;
 	}
 
-	if (strstr(saved_command_line, "gdx")) {
-		pr_info("Your FP scanner is goodix FPC is disabling");
-		return -1;
-	}
-
-
 	fpc1020->dev = dev;
 	platform_set_drvdata(pdev, fpc1020);
 
@@ -733,7 +727,12 @@ static struct platform_driver fpc1020_driver = {
 };
 
 static int __init fpc1020_init(void)
-{
+{       
+        if (strstr(saved_command_line, "gdx")) {
+		pr_info("Your FP scanner is goodix FPC is disabling");
+		return -1;
+	}
+
 	int rc = platform_driver_register(&fpc1020_driver);
 
 	if (!rc)
