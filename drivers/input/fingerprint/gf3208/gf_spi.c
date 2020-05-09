@@ -46,7 +46,6 @@
 #include <linux/unistd.h>
 #include <linux/delay.h>
 #include <drm/drm_bridge.h>
-#include <linux/msm_drm_notify.h>
 
 #if defined(USE_SPI_BUS)
 #include <linux/spi/spi.h>
@@ -84,28 +83,6 @@ static struct gf_dev gf;
 
 static struct proc_dir_entry *proc_entry;
 
-// Commandline
-extern char *saved_command_line;
-
-#if 0
-static struct gf_key_map maps[] = {
-	{ EV_KEY, GF_KEY_INPUT_HOME },
-	{ EV_KEY, GF_KEY_INPUT_MENU },
-	{ EV_KEY, GF_KEY_INPUT_BACK },
-	{ EV_KEY, GF_KEY_INPUT_POWER },
-#if defined(SUPPORT_NAV_EVENT)
-	{ EV_KEY, GF_NAV_INPUT_UP },
-	{ EV_KEY, GF_NAV_INPUT_DOWN },
-	{ EV_KEY, GF_NAV_INPUT_RIGHT },
-	{ EV_KEY, GF_NAV_INPUT_LEFT },
-	{ EV_KEY, GF_KEY_INPUT_CAMERA },
-	{ EV_KEY, GF_NAV_INPUT_CLICK },
-	{ EV_KEY, GF_NAV_INPUT_DOUBLE_CLICK },
-	{ EV_KEY, GF_NAV_INPUT_LONG_PRESS },
-	{ EV_KEY, GF_NAV_INPUT_HEAVY },
-#endif
-};
-#endif
 struct gf_key_map maps[] = {
 	{ EV_KEY, KEY_HOME },
 	{ EV_KEY, KEY_MENU },
@@ -689,59 +666,6 @@ static const struct file_operations proc_file_ops = {
 	.release = single_release,
 };
 
-static int goodix_fb_state_chg_callback(struct notifier_block *nb,
-		unsigned long val, void *data)
-{
-	struct gf_dev *gf_dev;
-	struct fb_event *evdata = data;
-	unsigned int blank;
-	char msg = 0;
-
-	if (val != MSM_DRM_EVENT_BLANK)
-		return 0;
-	pr_info("[info] %s go to the goodix_fb_state_chg_callback value = %d\n",
-			__func__, (int)val);
-	gf_dev = container_of(nb, struct gf_dev, notifier);
-	if (evdata && evdata->data && val == MSM_DRM_EVENT_BLANK && gf_dev) {
-		blank = *(int *)(evdata->data);
-		switch (blank) {
-		case MSM_DRM_BLANK_POWERDOWN:
-			if (gf_dev->device_available == 1) {
-				gf_dev->fb_black = 1;
-				gf_dev->wait_finger_down = true;
-#if defined(GF_NETLINK_ENABLE)
-				msg = GF_NET_EVENT_FB_BLACK;
-				sendnlmsg(&msg);
-#elif defined(GF_FASYNC)
-				if (gf_dev->async)
-					kill_fasync(&gf_dev->async, SIGIO, POLL_IN);
-#endif
-			}
-			break;
-		case MSM_DRM_BLANK_UNBLANK:
-			if (gf_dev->device_available == 1) {
-				gf_dev->fb_black = 0;
-#if defined(GF_NETLINK_ENABLE)
-				msg = GF_NET_EVENT_FB_UNBLACK;
-				sendnlmsg(&msg);
-#elif defined(GF_FASYNC)
-				if (gf_dev->async)
-					kill_fasync(&gf_dev->async, SIGIO, POLL_IN);
-#endif
-			}
-			break;
-		default:
-			pr_info("%s defalut\n", __func__);
-			break;
-		}
-	}
-	return NOTIFY_OK;
-}
-
-static struct notifier_block goodix_noti_block = {
-	.notifier_call = goodix_fb_state_chg_callback,
-};
-
 static struct class *gf_class;
 #if defined(USE_SPI_BUS)
 static int gf_probe(struct spi_device *spi)
@@ -827,9 +751,6 @@ static int gf_probe(struct platform_device *pdev)
 	spi_clock_set(gf_dev, 1000000);
 #endif
 
-	gf_dev->notifier = goodix_noti_block;
-	msm_drm_register_client(&gf_dev->notifier);
-
 	//wake_lock_init(&fp_wakelock, WAKE_LOCK_SUSPEND, "fp_wakelock");
 	wakeup_source_init(&fp_ws, "fp_ws");//for kernel 4.9
 
@@ -879,7 +800,6 @@ static int gf_remove(struct platform_device *pdev)
 
 	//wake_lock_destroy(&fp_wakelock);
 	wakeup_source_trash(&fp_ws);//for kernel 4.9
-	msm_drm_unregister_client(&gf_dev->notifier);
 	if (gf_dev->input)
 		input_unregister_device(gf_dev->input);
 	input_free_device(gf_dev->input);
@@ -919,21 +839,22 @@ static int __init gf_init(void)
 {
 	int status;
 
+    if (strstr(saved_command_line, "fpc")) {
+		pr_info("GDX going to sleep\n");
+		return -1;
+	}
+
 	/* Claim our 256 reserved device numbers.  Then register a class
 	 * that will key udev/mdev to add/remove /dev nodes.  Last, register
 	 * the driver which manages those device numbers.
 	 */
-	if (strstr(saved_command_line, "fpc")) {
-		pr_info("Your FP scanner is FPC goodix is disabling");
-		return -1;
-	}
-
 	BUILD_BUG_ON(N_SPI_MINORS > 256);
 	status = register_chrdev(SPIDEV_MAJOR, CHRD_DRIVER_NAME, &gf_fops);
 	if (status < 0) {
 		pr_warn("Failed to register char device!\n");
 		return status;
 	}
+
 	SPIDEV_MAJOR = status;
 	gf_class = class_create(THIS_MODULE, CLASS_NAME);
 	if (IS_ERR(gf_class)) {
@@ -941,6 +862,7 @@ static int __init gf_init(void)
 		pr_warn("Failed to create class.\n");
 		return PTR_ERR(gf_class);
 	}
+
 #if defined(USE_PLATFORM_BUS)
 	status = platform_driver_register(&gf_driver);
 #elif defined(USE_SPI_BUS)

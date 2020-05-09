@@ -79,6 +79,7 @@ int gf_power_on(struct gf_dev *gf_dev)
 	int rc = 0;
 
 	/* TODO: add your power control here */
+	msleep(10);
 	return rc;
 }
 

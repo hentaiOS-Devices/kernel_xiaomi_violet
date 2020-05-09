@@ -727,9 +727,9 @@ static struct platform_driver fpc1020_driver = {
 };
 
 static int __init fpc1020_init(void)
-{       
-        if (strstr(saved_command_line, "gdx")) {
-		pr_info("Your FP scanner is goodix FPC is disabling");
+{
+    if (strstr(saved_command_line, "gdx")) {
+		pr_info("FPC going to sleep\n");
 		return -1;
 	}
 
