@@ -32,8 +32,8 @@
 #define NVT_DEBUG 1
 
 //---GPIO number---
-#define NVTTOUCH_RST_PIN 980
-#define NVTTOUCH_INT_PIN 943
+#define NVTTOUCH_RST_PIN 88
+#define NVTTOUCH_INT_PIN 89
 
 
 //---INT trigger mode---
