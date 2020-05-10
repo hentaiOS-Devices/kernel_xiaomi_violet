@@ -1,9 +1,8 @@
 /*
- * Copyright (C) 2010 - 2017 Novatek, Inc.
- * Copyright (C) 2019 XiaoMi, Inc.
+ * Copyright (C) 2010 - 2018 Novatek, Inc.
  *
- * $Revision: 33334 $
- * $Date: 2018-09-04 19:17:10 +0800 (週二, 04 九月 2018) $
+ * $Revision: 47247 $
+ * $Date: 2019-07-10 10:41:36 +0800 (Wed, 10 Jul 2019) $
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,24 +18,27 @@
 #ifndef 	_LINUX_NVT_TOUCH_H
 #define		_LINUX_NVT_TOUCH_H
 
+#include <linux/delay.h>
 #include <linux/i2c.h>
 #include <linux/input.h>
-#include <linux/regulator/consumer.h>
+#include <linux/uaccess.h>
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
 
 #include "nt36xxx_mem_map.h"
 
-#include "../lct_tp_info.h"
 #define NVT_DEBUG 1
 
 //---GPIO number---
-#define NVTTOUCH_RST_PIN 88
-#define NVTTOUCH_INT_PIN 89
+#define NVTTOUCH_RST_PIN 980
+#define NVTTOUCH_INT_PIN 943
 
 
 //---INT trigger mode---
+//#define IRQ_TYPE_EDGE_RISING 1
+//#define IRQ_TYPE_EDGE_FALLING 2
 #define INT_TRIGGER_TYPE IRQ_TYPE_EDGE_RISING
 
 
@@ -52,12 +54,6 @@
 #define NVT_LOG(fmt, args...)    pr_info("[%s] %s %d: " fmt, NVT_I2C_NAME, __func__, __LINE__, ##args)
 #endif
 #define NVT_ERR(fmt, args...)    pr_err("[%s] %s %d: " fmt, NVT_I2C_NAME, __func__, __LINE__, ##args)
-#if 1
-#define LOGV(log, ...) \
-        printk("[%s] %s (line %d): " log, NVT_I2C_NAME, __func__, __LINE__, ##__VA_ARGS__)
-#else
-#define LOGV(log, ...) {}
-#endif
 
 //---Input device info.---
 #define NVT_TS_NAME "NVTCapacitiveTouchScreen"
@@ -86,31 +82,27 @@ extern const uint16_t touch_key_array[TOUCH_KEY_NUM];
 extern const uint16_t gesture_key_array[];
 #endif
 #define BOOT_UPDATE_FIRMWARE 1
-#define BOOT_UPDATE_FIRMWARE_NAME_SHENCHAO "novatek_ts_shenchao_fw.bin"
+#define BOOT_UPDATE_FIRMWARE_NAME "novatek_ts_shenchao_fw.bin"
 
 //---ESD Protect.---
-#define NVT_TOUCH_ESD_PROTECT 1
+#define NVT_TOUCH_ESD_PROTECT 0
 #define NVT_TOUCH_ESD_CHECK_PERIOD 1500	/* ms */
 
-#define TOUCH_STATE_WORKING    0x00
-#define TOUCH_STATE_UPGRADING  0x01
-
 struct nvt_ts_data {
-	uint8_t touch_state;
 	struct i2c_client *client;
 	struct input_dev *input_dev;
-	struct work_struct nvt_work;
 	struct delayed_work nvt_fwu_work;
 	uint16_t addr;
 	int8_t phys[32];
 #if defined(CONFIG_FB)
+#ifdef _MSM_DRM_NOTIFY_H_
+	struct notifier_block drm_notif;
+#else
 	struct notifier_block fb_notif;
-    struct work_struct fb_notify_work;
-
+#endif
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
 	struct early_suspend early_suspend;
 #endif
-	struct regulator *vcc_i2c;
 	uint8_t fw_ver;
 	uint8_t x_num;
 	uint8_t y_num;
@@ -124,12 +116,12 @@ struct nvt_ts_data {
 	int32_t reset_gpio;
 	uint32_t reset_flags;
 	struct mutex lock;
-	struct mutex pm_mutex;
 	const struct nvt_ts_mem_map *mmap;
 	uint8_t carrier_system;
 	uint16_t nvt_pid;
 	uint8_t xbuf[1025];
 	struct mutex xbuf_lock;
+	bool irq_enabled;
 };
 
 #if NVT_TOUCH_PROC
@@ -158,9 +150,6 @@ typedef enum {
 //---extern structures---
 extern struct nvt_ts_data *ts;
 
-/* Command Line */
-extern char *saved_command_line;
-
 //---extern functions---
 extern int32_t CTP_I2C_READ(struct i2c_client *client, uint16_t address, uint8_t *buf, uint16_t len);
 extern int32_t CTP_I2C_WRITE(struct i2c_client *client, uint16_t address, uint8_t *buf, uint16_t len);
@@ -170,6 +159,7 @@ extern int32_t nvt_check_fw_reset_state(RST_COMPLETE_STATE check_reset_state);
 extern int32_t nvt_get_fw_info(void);
 extern int32_t nvt_clear_fw_status(void);
 extern int32_t nvt_check_fw_status(void);
+extern int32_t nvt_set_page(uint16_t i2c_addr, uint32_t addr);
 #if NVT_TOUCH_ESD_PROTECT
 extern void nvt_esd_check_enable(uint8_t enable);
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
