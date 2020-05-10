@@ -33,9 +33,6 @@
 #define __LINUX_FOCALTECH_COMMON_H__
 
 #include "focaltech_config.h"
-#include "../lct_tp_info.h"
-#include "../lct_ctp_selftest.h"
-extern int lct_fts_tp_info_node_init(void);
 
 /*****************************************************************************
 * Macro definitions using #define

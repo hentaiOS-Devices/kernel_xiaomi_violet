@@ -62,27 +62,9 @@ struct fts_ts_data *fts_data;
 /*****************************************************************************
 * Static function prototypes
 *****************************************************************************/
-static void fts_release_all_finger(void);
 static int fts_ts_suspend(struct device *dev);
-static int fts_ts_resume(struct device *dev);
 
-static void tp_fb_notifier_resume_work(struct work_struct *work);
 static void fts_interr_work(struct work_struct *work);
-
-static int lct_tp_get_screen_angle_callback(void);
-static int lct_tp_set_screen_angle_callback(unsigned int angle);
-
-#if FTS_GESTURE_EN
-extern void fts_gesture_node__switch(bool);
-static int lct_tp_gesture_node_callback(bool flag);
-static int fts_gesture_switch(struct input_dev *dev, unsigned int type, unsigned int code, int value);
-extern bool enable_gesture_mode; // for gesture
-#define WAKEUP_OFF 4
-#define WAKEUP_ON 5
-bool fts_delay_gesture = false;
-bool fts_suspend_stats = false;
-static struct wakeup_source gestrue_wakelock;
-#endif
 
 /*****************************************************************************
 *  Name: fts_wait_tp_to_valid
@@ -246,9 +228,6 @@ void fts_tp_state_recovery(struct i2c_client *client)
 	/* recover TP cover state 0xC1 */
 	fts_ex_mode_recovery(client);
 	/* recover TP gesture state 0xD0 */
-#if FTS_GESTURE_EN
-	fts_gesture_recovery(client);
-#endif
 	FTS_FUNC_EXIT();
 }
 
@@ -552,37 +531,6 @@ static void fts_show_touch_buffer(u8 *buf, int point_num)
 }
 #endif
 
-/*****************************************************************************
- *  Name: fts_release_all_finger
- *  Brief: report all points' up events, release touch
- *  Input:
- *  Output:
- *  Return:
- *****************************************************************************/
-static void fts_release_all_finger(void)
-{
-	struct input_dev *input_dev = fts_data->input_dev;
-#if FTS_MT_PROTOCOL_B_EN
-	u32 finger_count = 0;
-#endif
-
-	FTS_FUNC_ENTER();
-	mutex_lock(&fts_data->report_mutex);
-#if FTS_MT_PROTOCOL_B_EN
-	for (finger_count = 0; finger_count < fts_data->pdata->max_touch_number; finger_count++) {
-		input_mt_slot(input_dev, finger_count);
-		input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, false);
-	}
-#else
-	input_mt_sync(input_dev);
-#endif
-	input_report_key(input_dev, BTN_TOUCH, 0);
-	input_sync(input_dev);
-
-	mutex_unlock(&fts_data->report_mutex);
-	FTS_FUNC_EXIT();
-}
-
 /************************************************************************
  * Name: fts_input_report_key
  * Brief: report key event
@@ -778,13 +726,6 @@ static int fts_read_touchdata(struct fts_ts_data *data)
 	u8 *buf = data->point_buf;
 	struct i2c_client *client = data->client;
 
-#if FTS_GESTURE_EN
-	if (0 == fts_gesture_readdata(data)) {
-		FTS_INFO("succuss to get gesture data in irq handler");
-		return 1;
-	}
-#endif
-
 #if FTS_POINT_REPORT_CHECK_EN
 	fts_prc_queue_work(data);
 #endif
@@ -880,8 +821,6 @@ static void fts_report_event(struct fts_ts_data *data)
 *****************************************************************************/
 static irqreturn_t fts_ts_interrupt(int irq, void *data)
 {
-	__pm_wakeup_event(&gestrue_wakelock, 5000);
-
 	queue_work(fts_data->ts_workqueue, &fts_data->interr_work);
 
 	return IRQ_HANDLED;
@@ -1215,98 +1154,7 @@ static int fts_parse_dt(struct device *dev, struct fts_ts_platform_data *pdata)
 	return 0;
 }
 
-static int lct_tp_get_screen_angle_callback(void)
-{
-	return -EPERM;
-}
-static int lct_tp_set_screen_angle_callback(unsigned int angle)
-{
-	u8 val;
-	int ret = -EIO;
-	struct i2c_client *client = fts_data->client;
-
-	FTS_FUNC_ENTER();
-
-	if ( fts_data->suspended || (fts_data->touch_state == 1) ) {
-		FTS_ERROR("tp is suspended or flashing, can not to set\n");
-		return ret;
-	}
-
-	//mutex_lock(&fts_data->report_mutex);
-
-	if ((angle == 90) || (angle == 270)) {
-		val = 1;
-	} else {
-		val = 0;
-	}
-
-	ret = fts_i2c_write_reg(client,FTS_SET_ANGLE,val);
-	if(ret < 0)
-		FTS_ERROR("[FTS] i2c write FTS_SET_ANGLE, err\n");
-
-	FTS_FUNC_EXIT();
-	return ret;
-}
-
-#if FTS_GESTURE_EN
-static int fts_gesture_switch(struct input_dev *dev, unsigned int type, unsigned int code, int value)
-{
-	if (type == EV_SYN && code == SYN_CONFIG)
-	{
-		if (fts_suspend_stats)
-		{
-			if ((value != WAKEUP_OFF) || enable_gesture_mode)
-			{
-				fts_delay_gesture = true;
-			}
-		}
-		FTS_INFO("choose the gesture mode yes or not\n");
-		if(value == WAKEUP_OFF){
-			FTS_INFO("disable gesture mode\n");
-			enable_gesture_mode = false;
-			fts_gesture_node__switch(false);
-		}else if(value == WAKEUP_ON){
-			FTS_INFO("enable gesture mode\n");
-			enable_gesture_mode  = true;
-			fts_gesture_node__switch(true);
-		}
-	}
-	return 0;
-}
-
-static int lct_tp_gesture_node_callback(bool flag)
-{
-	int retval = 0;
-	if (fts_suspend_stats) {
-		FTS_INFO("ERROR: TP is suspend!\n");
-		return -1;
-	}
-	if(flag) {
-		enable_gesture_mode = true;
-		fts_gesture_node__switch(flag);
-		FTS_INFO("enable gesture mode\n");
-	} else {
-		enable_gesture_mode = false;
-		fts_gesture_node__switch(flag);
-		FTS_INFO("disable gesture mode\n");
-	}
-	return retval;
-}
-#endif
-
 #if defined(CONFIG_FB)
-
-static void tp_fb_notifier_resume_work(struct work_struct *work)
-{
-	int ret = 0;
-
-	mutex_lock(&fts_data->pm_mutex);
-	ret = fts_ts_resume(&fts_data->client->dev);
-	if (ret < 0)
-		FTS_ERROR("fts_ts_resume faild! ret=%d", ret);
-	mutex_unlock(&fts_data->pm_mutex);
-	return;
-}
 
 /*****************************************************************************
 *  Name: fb_notifier_callback
@@ -1452,7 +1300,6 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 		goto err_input_init;
 	}
 
-	INIT_WORK(&ts_data->fb_notify_work, tp_fb_notifier_resume_work);
 	INIT_WORK(&ts_data->interr_work, fts_interr_work);
 
 #if FTS_POWER_SOURCE_CUST_EN
@@ -1519,18 +1366,6 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 		FTS_ERROR("init glove/cover/charger fail");
 	}
 
-#if FTS_GESTURE_EN
-	ret = fts_gesture_init(ts_data);
-	if (ret) {
-		FTS_ERROR("init gesture fail");
-	}
-	ts_data->input_dev->event = fts_gesture_switch;
-	ret = init_lct_tp_gesture(lct_tp_gesture_node_callback);
-	if (ret < 0) {
-		FTS_ERROR("Failed to add /proc/tp_gesture node!\n");
-	}
-#endif
-
 #if FTS_TEST_EN
 	ret = fts_test_init(client);
 	if (ret) {
@@ -1549,14 +1384,6 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 	if (ret) {
 		FTS_ERROR("request irq failed");
 		goto err_irq_req;
-	}
-	wakeup_source_init(&gestrue_wakelock, "gestrue_wakelock");
-
-	lct_fts_tp_info_node_init();
-
-	ret = init_lct_tp_grip_area(lct_tp_set_screen_angle_callback, lct_tp_get_screen_angle_callback);
-	if (ret < 0) {
-		FTS_ERROR("Failed to add /proc/tp_grip_area node!\n");
 	}
 
 #if FTS_AUTO_UPGRADE_EN
@@ -1651,10 +1478,6 @@ static int fts_ts_remove(struct i2c_client *client)
 	fts_esdcheck_exit(ts_data);
 #endif
 
-#if FTS_GESTURE_EN
-	fts_gesture_exit(client);
-#endif
-
 #if defined(CONFIG_FB)
 	if (msm_drm_unregister_client(&ts_data->fb_notif))
 		FTS_ERROR("Error occurred while unregistering fb_notifier.");
@@ -1682,7 +1505,6 @@ static int fts_ts_remove(struct i2c_client *client)
 	fts_power_source_release(ts_data);
 #endif
 
-	wakeup_source_trash(&gestrue_wakelock);
 	kfree_safe(ts_data->point_buf);
 	kfree(fts_data->rbuf);
 	kfree(fts_data->wbuf);
@@ -1722,16 +1544,6 @@ static int fts_ts_suspend(struct device *dev)
 	fts_esdcheck_suspend();
 #endif
 
-#if FTS_GESTURE_EN
-	if (enable_gesture_mode) {
-	if (fts_gesture_suspend(ts_data->client) == 0) {
-		ts_data->suspended = true;
-		fts_suspend_stats = true;
-		return 0;
-	}
-	}
-#endif
-
 	fts_irq_disable();
 
 #if FTS_POWER_SOURCE_CUST_EN
@@ -1750,72 +1562,6 @@ static int fts_ts_suspend(struct device *dev)
 #endif
 	gpio_direction_output(fts_data->pdata->reset_gpio, 0);
 	ts_data->suspended = true;
-	fts_suspend_stats = true;
-	FTS_FUNC_EXIT();
-	return 0;
-}
-
-/*****************************************************************************
-*  Name: fts_ts_resume
-*  Brief:
-*  Input:
-*  Output:
-*  Return:
-*****************************************************************************/
-static int fts_ts_resume(struct device *dev)
-{
-	struct fts_ts_data *ts_data = dev_get_drvdata(dev);
-
-	FTS_FUNC_ENTER();
-	if (!ts_data->suspended) {
-		FTS_DEBUG("Already in awake state");
-		return 0;
-	}
-
-	fts_release_all_finger();
-
-#if FTS_POWER_SOURCE_CUST_EN
-	fts_power_source_ctrl(ts_data, ENABLE);
-#if FTS_PINCTRL_EN
-	fts_pinctrl_select_normal(ts_data);
-#endif
-#endif
-
-	if (!ts_data->ic_info.is_incell) {
-		fts_reset_proc(200);
-	}
-	gpio_direction_output(fts_data->pdata->reset_gpio, 1);
-	fts_tp_state_recovery(ts_data->client);
-
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_resume();
-#endif
-
-#if FTS_GESTURE_EN
-	if(enable_gesture_mode) {
-		if (fts_gesture_resume(ts_data->client) == 0) {
-			ts_data->suspended = false;
-			fts_suspend_stats = false;
-			return 0;
-		}
-	}
-#endif
-
-	if (fts_delay_gesture) {
-		enable_gesture_mode = !enable_gesture_mode;
-	}
-
-	if (!enable_gesture_mode){
-		fts_irq_enable();
-	}
-
-	if (fts_delay_gesture ) {
-		enable_gesture_mode = !enable_gesture_mode;
-	}
-	ts_data->suspended = false;
-
-	fts_suspend_stats = false;
-	fts_delay_gesture = false;
 	FTS_FUNC_EXIT();
 	return 0;
 }

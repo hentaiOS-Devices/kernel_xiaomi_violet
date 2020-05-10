@@ -1327,54 +1327,6 @@ static ssize_t fts_test_store(struct device *dev, struct device_attribute *attr,
 	return count;
 }
 
-static int lct_fts_tp_selftest(void)
-{
-	char fwname[128] = {0};
-	struct fts_ts_data *ts_data = fts_data;
-	struct input_dev *input_dev;
-
-	FTS_TEST_FUNC_ENTER();
-
-	if (ts_data->suspended) {
-		FTS_INFO("In suspend, no test, return now");
-		return -EINVAL;
-	}
-
-	input_dev = ts_data->input_dev;
-	memset(fwname, 0, sizeof(fwname));
-	sprintf(fwname, "%s", "Conf_MultipleTest.ini\0");
-	FTS_TEST_DBG("fwname:%s.", fwname);
-
-	mutex_lock(&input_dev->mutex);
-	disable_irq(ts_data->irq);
-
-#if defined(FTS_ESDCHECK_EN) && (FTS_ESDCHECK_EN)
-	fts_esdcheck_switch(DISABLE);
-#endif
-
-	fts_test_entry(fwname);
-
-#if defined(FTS_ESDCHECK_EN) && (FTS_ESDCHECK_EN)
-	fts_esdcheck_switch(ENABLE);
-#endif
-
-	enable_irq(ts_data->irq);
-	mutex_unlock(&input_dev->mutex);
-
-	if ((TestResult_Maininit == 0)&& (TestResult_Testparams == 0) && (TestResult_Start == 0)&& (TestResult_Workmode ==0) && (TestResult_Mainexit == 0)){
-		FTS_TEST_INFO("Pass\n");
-		return 2;
-	} else {
-		FTS_TEST_INFO("Maininit=%d, Testparams=%d, Start=%d, Workmode=%d, Mainexit=%d, Fail!\n",
-				TestResult_Maininit, TestResult_Testparams, TestResult_Start, TestResult_Workmode, TestResult_Mainexit);
-		FTS_TEST_INFO("Fail\n");
-		return 1;
-	}
-
-	FTS_TEST_FUNC_EXIT();
-	return 0;
-}
-
 /*  test from test.ini
 *    example:echo "***.ini" > fts_test
 */
@@ -1395,8 +1347,6 @@ int fts_test_init(struct i2c_client *client)
 	int ret = 0;
 
 	FTS_TEST_FUNC_ENTER();
-
-	lct_ctp_selftest_int(lct_fts_tp_selftest);
 
 	ret = sysfs_create_group(&client->dev.kobj, &fts_test_attribute_group);
 	if (0 != ret) {

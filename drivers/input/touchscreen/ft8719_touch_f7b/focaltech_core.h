@@ -68,8 +68,6 @@
 #include <linux/vmalloc.h>
 #include "focaltech_common.h"
 #include <linux/msm_drm_notify.h>
-#include "../lct_tp_gesture.h"
-#include "../lct_tp_grip_area.h"
 
 /*****************************************************************************
 * Private constant and macro definitions using #define
@@ -192,16 +190,6 @@ int fts_i2c_write(struct i2c_client *client, char *writebuf, int writelen);
 void fts_i2c_hid2std(struct i2c_client *client);
 int fts_i2c_init(void);
 int fts_i2c_exit(void);
-
-/* Gesture functions */
-#if FTS_GESTURE_EN
-int fts_gesture_init(struct fts_ts_data *ts_data);
-int fts_gesture_exit(struct i2c_client *client);
-void fts_gesture_recovery(struct i2c_client *client);
-int fts_gesture_readdata(struct fts_ts_data *ts_data);
-int fts_gesture_suspend(struct i2c_client *i2c_client);
-int fts_gesture_resume(struct i2c_client *client);
-#endif
 
 /* Apk and functions */
 #if FTS_APK_NODE_EN

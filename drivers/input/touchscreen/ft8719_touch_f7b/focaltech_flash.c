@@ -1604,7 +1604,6 @@ static int update_tp_info(struct i2c_client *client)
 	//FTS_INFO("updata tp info IC FW Ver = 0x%02x", ver);
 	sprintf(tp_info_buf, "[Vendor]tianma,[FW]0x%02x,[IC]ft8719\n", ver);
 
-	update_lct_tp_info(tp_info_buf,NULL);
 	return 0;
 }
 

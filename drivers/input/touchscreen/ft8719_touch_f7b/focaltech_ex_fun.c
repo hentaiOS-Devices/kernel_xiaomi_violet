@@ -54,19 +54,6 @@
 #define PROC_READ_BUF_SIZE                      256
 
 /*****************************************************************************
-* Private enumerations, structures and unions using typedef
-*****************************************************************************/
-
-static uint8_t tp_maker_cg_lamination = 0;
-static uint8_t display_maker = 0;
-static uint8_t cg_ink_color = 0;
-static uint8_t hw_version = 0;
-static uint8_t project_id = 0;
-static uint8_t cg_maker = 0;
-static uint8_t reservation_byte = 0;
-
-
-/*****************************************************************************
 * Static variables
 *****************************************************************************/
 enum {
@@ -985,83 +972,6 @@ static ssize_t fts_dumpreg_show(struct device *dev, struct device_attribute *att
 	mutex_unlock(&input_dev->mutex);
 	return count;
 }
-
-static int32_t fts_get_xiaomi_lockdown_info(void)
-{
-	int ret = 0;
-	u8 fw_ver_in_tp = 0;
-	uint8_t data_buf[8] = {0};
-	u8 fts_reg_buf[1] = {0x81};
-	struct i2c_client *client = fts_data->client;
-
-	ret = fts_i2c_read_reg(client, FTS_REG_FW_VER, &fw_ver_in_tp);
-	if (ret < 0) {
-		FTS_ERROR("read fw ver from tp fail");
-		return ret;
-	}
-
-	ret = fts_i2c_write_reg(client,0x00,0x40);
-	if(ret < 0)
-		FTS_ERROR("[FTS] i2c write 0x00 err\n");
-	msleep(5);
-	
-	ret = fts_i2c_write_reg(client,0x17,0x20);
-	if(ret < 0)
-		FTS_ERROR("[FTS] i2c write 0x17 err\n");
-	msleep(5);
-
-	ret = fts_i2c_read(client,fts_reg_buf,1,data_buf,8);
-	if (ret < 0) {
-		FTS_ERROR("get fts data failed!\n");
-	} else {
-		tp_maker_cg_lamination = data_buf[0];
-		FTS_INFO("The maker of Touch Panel & CG Lamination: 0x%02X\n", tp_maker_cg_lamination);
-		display_maker = data_buf[1];
-		FTS_INFO("Display maker: 0x%02X\n", display_maker);
-		cg_ink_color = data_buf[2];
-		FTS_INFO("CG ink color: 0x%02X\n", cg_ink_color);
-		hw_version = data_buf[3];
-		FTS_INFO("HW version: 0x%02X\n", hw_version);
-		project_id = ((data_buf[4] << 8) | data_buf[5]);
-		FTS_INFO("Project ID: 0x%04X\n", project_id);
-		cg_maker = data_buf[6];
-		FTS_INFO("CG maker: 0x%02X\n", cg_maker);
-		reservation_byte = data_buf[7];
-		FTS_INFO("Reservation byte: 0x%02X\n", reservation_byte);
-	}
-
-	ret = fts_i2c_write_reg(client,0x00,0x00);
-	if(ret < 0)
-		FTS_ERROR("[FTS] i2c read 0x00 err \n");
-
-	return fw_ver_in_tp;
-}
-
-int lct_fts_tp_info_node_init(void)
-{
-	u8 fw_ver = 0;
-	char tp_info_buf[64];
-	char tp_lockdown_info_buf[64];
-	fw_ver = fts_get_xiaomi_lockdown_info();
-	memset(tp_info_buf, 0, sizeof(tp_info_buf));
-
-	if (strstr(saved_command_line, "shenchao")) {
-		sprintf(tp_info_buf, "[Vendor]shenchao,[FW]0x%02x,[IC]nt36672a\n", fw_ver);
-		goto tp_node_init;
-	} else if (strstr(saved_command_line, "tianma")) {
-		sprintf(tp_info_buf, "[Vendor]tianma,[FW]0x%02x,[IC]ft8719\n", fw_ver);
-		goto tp_node_init;
-	} else {
-		init_lct_tp_info(NULL, NULL);
-		return -ENODEV;
-	}
-
-tp_node_init:
-	sprintf(tp_lockdown_info_buf, "%02X%02X%02X%02X%04X%02X%02X\n", tp_maker_cg_lamination, display_maker, cg_ink_color, hw_version, project_id, cg_maker, reservation_byte);
-	init_lct_tp_info(tp_info_buf, tp_lockdown_info_buf);
-	return 0;
-}
-
 
 /* get the fw version  example:cat fw_version */
 static DEVICE_ATTR(fts_fw_version, S_IRUGO | S_IWUSR, fts_tpfwver_show, fts_tpfwver_store);

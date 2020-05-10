@@ -126,12 +126,6 @@
 #define FTS_REPORT_PRESSURE_EN                  1
 
 /*
- * Gesture function enable
- * default: disable
- */
-#define FTS_GESTURE_EN                          1
-
-/*
  * ESD check & protection
  * default: disable
  */
