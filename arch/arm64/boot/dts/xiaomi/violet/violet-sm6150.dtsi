@@ -54,6 +54,13 @@
 		label = "kregistry";
 		memory-region = <&kregistry_mem>;
 	};
+
+	qcom,msm-imem@146aa000 {
+		rst_info@d38 {
+			compatible = "msm-imem-rst_info";
+			reg = <0xd38 100>;
+		};
+	};
 };
 
 &firmware {
