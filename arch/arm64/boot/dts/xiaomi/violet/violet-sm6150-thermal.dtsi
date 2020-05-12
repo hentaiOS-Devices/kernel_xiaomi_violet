@@ -45,11 +45,6 @@
 
 	soc {
 		cooling-maps {
-			soc_cpu5 {
-				trip = <&soc_trip>;
-				cooling-device =
-					<&CPU5 10 10>;
-			};
 			soc_cpu6 {
 				trip = <&soc_trip>;
 				cooling-device =
