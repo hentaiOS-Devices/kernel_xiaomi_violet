@@ -15,33 +15,20 @@
 	#include "battery/LC_M6300_Sunwoda4000mAh_3632066_FG.dtsi"
 };
 
-&smb1355 {
-	status = "disabled";
-};
-
-&smb1355_charger {
-	status = "disabled";
-};
-
-&smb1390 {
-	status = "disabled";
-};
-
-&smb1390_charger {
-	status = "disabled";
-};
-
 &pm6150_qg {
 	qcom,qg-iterm-ma = <350>;
-	qcom,qg-vadc = <&pm6150_vadc>;
+	qcom,s3-entry-fifo-length = <2>;
+	qcom,s3-entry-ibat-ua = <30000>;
+	qcom,s3-exit-ibat-ua = <50000>;
+	qcom,vbatt-empty-cold-mv = <3100>;
+	qcom,vbatt-empty-mv = <3100>;
+	qcom,vbatt-low-cold-mv = <3700>;
+	qcom,vbatt-low-mv = <3300>;
 };
 
 &pm6150_charger {
-	qcom,auto-recharge-soc = <99>;
 	qcom,chg-term-current-ma = <(-200)>;
-};
-
-&pm6150_pdphy{
-	qcom,default-sink-caps = <5000 3000>, /* 5V @ 3A */
-		<9000 3000>; /* 9V @ 3A */
+	qcom,chg-term-src = <1>;
+	qcom,sec-charger-config = <1>;
+	qcom,auto-recharge-soc = <99>;
 };

@@ -13,6 +13,11 @@
 &usb0 {
 	google,switch-vbus = <500>;
 	dwc3@a600000 {
+		usb-phy = <&qusb_phy0>, <&usb_nop_phy>;
 		maximum-speed = "high-speed";
 	};
+};
+
+&usb_qmp_phy {
+	status = "disabled";
 };
