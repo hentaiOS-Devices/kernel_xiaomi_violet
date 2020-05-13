@@ -27,6 +27,7 @@
 };
 
 &pm6150_charger {
+	google,usb-port-tz-name = "quiet-therm";
 	qcom,chg-term-current-ma = <(-200)>;
 	qcom,chg-term-src = <1>;
 	qcom,sec-charger-config = <1>;
