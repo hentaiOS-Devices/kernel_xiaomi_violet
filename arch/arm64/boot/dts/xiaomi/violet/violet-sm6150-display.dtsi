@@ -27,10 +27,20 @@
 	};
 };
 
+&sde_dp {
+	status = "disabled";
+};
+
+&mdss_mdp {
+	connectors = <&sde_rscc &sde_wb &sde_dsi>;
+};
+
 &soc {
 	dsi_ft8719_tianma_vid_display: qcom,dsi-display@0 {
 		label = "dsi_ft8719_tianma_vid_display";
 		qcom,display-type = "primary";
+		qcom,dsi-display-active;
+
 		qcom,dsi-ctrl-num = <0>;
 		qcom,dsi-phy-num = <0>;
 		qcom,dsi-select-clocks = "mux_byte_clk0", "mux_pixel_clk0";
@@ -40,6 +50,8 @@
     dsi_nt36672a_shenchao_vid_display: qcom,dsi-display@1 {
 		label = "dsi_nt36672a_shenchao_vid_display";
 		qcom,display-type = "primary";
+		qcom,dsi-display-active;
+
 		qcom,dsi-ctrl-num = <0>;
 		qcom,dsi-phy-num = <0>;
 		qcom,dsi-select-clocks = "mux_byte_clk0", "mux_pixel_clk0";
