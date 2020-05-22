@@ -33,4 +33,6 @@
 	qcom,chg-term-src = <1>;
 	qcom,sec-charger-config = <1>;
 	qcom,auto-recharge-soc = <99>;
+	qcom,thermal-mitigation = <3000000 2500000 2000000
+			1500000 1000000>;
 };
