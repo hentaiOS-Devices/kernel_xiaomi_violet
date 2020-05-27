@@ -23,19 +23,48 @@
 };
 
  &thermal_zones {
-	lmh-dcvs-00 {
-        status = "disabled";
+	camera-step {
+        disable-thermal-zone;
 	};
 
-	lmh-dcvs-01 {
-        status = "disabled";
+	display-step {
+        disable-thermal-zone;
+	};
+
+	mdm-core-step {
+        disable-thermal-zone;
+	};
+
+	video-step {
+        disable-thermal-zone;
+	};
+
+	wlan-step {
+        disable-thermal-zone;
+	};
+
+	conn-therm {
+		disable-thermal-zone;
+	};
+
+	video-lowf {
+		disable-thermal-zone;
+	};
+
+	wlan-lowf {
+		disable-thermal-zone;
+	};
+
+	display-lowf {
+		disable-thermal-zone;
 	};
 
 	quiet-therm-step {
-		status = "disabled";
+		disable-thermal-zone;
 	};
 
 	sdm-therm {
+		thermal-sensors = <&pm6150l_adc_tm ADC_AMUX_THM2_PU2>;
 		trips {
 			shutdown-config {
 				temperature = <63000>;
@@ -49,7 +78,7 @@
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-governor = "user_space";
-		thermal-sensors = <&pm6150_adc_tm ADC_AMUX_THM2_PU2>;
+		thermal-sensors = <&pm6150l_adc_tm ADC_AMUX_THM2_PU2>;
 		trips {
 			active-config0 {
 				temperature = <125000>;
@@ -63,8 +92,7 @@
 		polling-delay-passive = <1000>;
 		polling-delay = <0>;
 		thermal-governor = "step_wise";
-		thermal-sensors = <&pm6150l_adc_tm ADC_GPIO4_PU2>;
-		wake-capable-sensor;
+		thermal-sensors = <&pm6150_adc_tm ADC_AMUX_THM4_PU2>;
 		trips {
 			usb_throttling_lv1: usb-throttling_lv1 {
 				temperature = <55000>;
@@ -85,7 +113,7 @@
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-governor = "user_space";
-		thermal-sensors = <&pm6150l_adc_tm ADC_GPIO4_PU2>;
+		thermal-sensors = <&pm6150_adc_tm ADC_AMUX_THM4_PU2>;
 		trips {
 			active-config0 {
 				temperature = <125000>;
