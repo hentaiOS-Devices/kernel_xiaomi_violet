@@ -32,6 +32,8 @@ config GOOGLE_BATTERY
 	  battery statistics such as bin count and other features common to all
 	  google battery powered devices.
 
+endif	# GOOGLE_BMS
+
 config USB_OVERHEAT_MITIGATION
 	tristate "Google USB Overheat Mitigation"
 	help
@@ -44,8 +46,6 @@ config GOOGLE_LOGBUFFER
 	  This option enables a module that exposes an API to maintain driver
 	  specific logs in an exclusive ring buffer and exposes it through
 	  debugfs.
-
-endif	# GOOGLE_BMS
 
 config CHARGER_P9221
 	tristate "IDT P9221 wireless power receiver driver"
