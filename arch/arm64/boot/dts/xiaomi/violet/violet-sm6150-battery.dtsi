@@ -17,6 +17,7 @@
 };
 
 &pm6150_qg {
+	qcom,cl-disable = <1>;
 	qcom,qg-iterm-ma = <350>;
 	qcom,s3-entry-fifo-length = <2>;
 	qcom,s3-entry-ibat-ua = <30000>;
