@@ -2236,6 +2236,7 @@ static int smb5_init_vbus_regulator(struct smb5 *chip)
 	if (!chg->vbus_vreg)
 		return -ENOMEM;
 
+#ifdef BOARD_FLORAL
 	if (chg->otg_out_uv != 0) {
 		rc = smblib_set_charge_param(chg, &chg->param.otg_out,
 					     chg->otg_out_uv);
@@ -2245,6 +2246,7 @@ static int smb5_init_vbus_regulator(struct smb5 *chip)
 			return rc;
 		}
 	}
+#endif
 
 	cfg.dev = chg->dev;
 	cfg.driver_data = chip;
