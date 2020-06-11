@@ -14,8 +14,8 @@
 	google_overheat_mitigation: google,overheat_mitigation{
 		compatible = "google,overheat_mitigation";
 		#cooling-cells = <2>;
-		google,begin-mitigation-temp = <550>;
-		google,end-mitigation-temp = <450>;
+		google,begin-mitigation-temp = <500>;
+		google,end-mitigation-temp = <400>;
 		google,port-overheat-work-interval = <2000>;
 		/* Must maintain < 1/15 duty cycle */
 		google,polling-freq = <3>;

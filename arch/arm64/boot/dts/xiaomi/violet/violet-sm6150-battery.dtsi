@@ -47,6 +47,6 @@
 	qcom,dc-icl-ua = <100>;
 	qcom,sec-charger-config = <0>;
 	qcom,auto-recharge-soc = <99>;
-	qcom,thermal-mitigation = <3000000 2500000 2000000
-			1500000 1000000>;
+	qcom,thermal-mitigation = <3000000 1850000 925000
+			500000>;
 };
