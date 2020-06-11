@@ -9,6 +9,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+&camera_vana0_ldo {
+	regulator-min-microvolt = <3008000>;
+	regulator-max-microvolt = <3008000>;
+};
 
 &cam_cci {
 	qcom,actuator@0 {
@@ -44,10 +48,11 @@
 		eeprom-src = <&eeprom_rear>;
 		cam_vana-supply = <&camera_vana0_ldo>;
 		cam_vaf-supply = <&pm6150_l19>;
-		regulator-names = "cam_vio", "cam_vana", "cam_vaf", "cam_clk";
-		rgltr-min-voltage = <1800000 2850000 2800000 0>;
-		rgltr-max-voltage = <1800000 2850000 2800000 0>;
-		rgltr-load-current = <0 80000 100000 0>;
+        regulator-names = "cam_vio", "cam_vana", "cam_vdig",
+            "cam_clk";
+        rgltr-min-voltage = <0 3008000 1352000 0>;
+        rgltr-max-voltage = <0 3008000 1352000 0>;
+        rgltr-load-current = <0 120000 1200000 0>;
 		pinctrl-0 = <&cam_sensor_mclk0_active
 					&cam_sensor_rear_active>;
 		pinctrl-1 = <&cam_sensor_mclk0_suspend
@@ -69,10 +74,11 @@
 };
 
 &eeprom_rear {
-	regulator-names = "cam_vio", "cam_vana", "cam_vaf", "cam_clk";
-	rgltr-min-voltage = <1800000 2850000 2800000 0>;
-	rgltr-max-voltage = <1800000 2850000 2800000 0>;
-	rgltr-load-current = <0 80000 100000 0>;
+    regulator-names = "cam_vio", "cam_vana", "cam_vdig",
+        "cam_clk";
+    rgltr-min-voltage = <0 3008000 1352000 0>;
+    rgltr-max-voltage = <0 3008000 1352000 0>;
+    rgltr-load-current = <0 120000 1200000 0>;
 	gpios = <&tlmm 28 0>,
 			<&tlmm 47 0>,
 			<&tlmm 94 0>,
