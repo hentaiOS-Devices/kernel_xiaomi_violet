@@ -20,7 +20,6 @@
 #include "violet-sm6150-memory.dtsi"
 #include "violet-sm6150-nfc.dtsi"
 #include "violet-sm6150-pinctrl.dtsi"
-#include "violet-sm6150-pm6150.dtsi"
 #include "violet-sm6150-pm6150l.dtsi"
 #include "violet-sm6150-regulator.dtsi"
 #include "violet-sm6150-thermal.dtsi"
