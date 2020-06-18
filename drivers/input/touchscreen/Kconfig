@@ -1320,6 +1320,8 @@ config TOUCHSCREEN_SYNAPTICS_TCM
 
 source "drivers/input/touchscreen/synaptics_tcm/Kconfig"
 source "drivers/input/touchscreen/nt36xxx/Kconfig"
+source "drivers/input/touchscreen/nt36xxx_spi_c3j/Kconfig"
 source "drivers/input/touchscreen/ft8719_touch_f7b/Kconfig"
+source "drivers/input/touchscreen/ft8719_spi_c3j/Kconfig"
 
 endif
