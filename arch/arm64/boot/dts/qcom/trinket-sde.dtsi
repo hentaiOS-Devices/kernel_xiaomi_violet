@@ -39,7 +39,6 @@
 						 192000000>;
 		clock-max-rate = <0 0 0 0 0 400000000 19200000 400000000
 						307200000>;
-		qcom,dss-cx-ipeak = <&cx_ipeak_lm 1>;
 
 		sde-vdd-supply = <&mdss_core_gdsc>;
 

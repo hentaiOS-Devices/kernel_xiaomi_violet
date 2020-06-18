@@ -130,9 +130,6 @@
 
 		qcom,gpu-gaming-bin = <0x6018 0x80 7>;
 
-		/* CX iPeak limit support */
-		qcom,gpu-cx-ipeak = <&cx_ipeak_lm 5>;
-
 		/* GPU Mempools */
 		qcom,gpu-mempools {
 			#address-cells = <1>;

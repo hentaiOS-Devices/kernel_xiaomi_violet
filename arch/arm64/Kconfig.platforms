@@ -363,6 +363,11 @@ config ARCH_ZYNQMP
 	help
 	  This enables support for Xilinx ZynqMP Family
 
+config BOARD_C3J
+	bool "Xiaomi C3J Family"
+	depends on ARCH_QCOM
+	select ARCH_TRINKET
+
 config BOARD_F7B
 	bool "Xiaomi F7B Family"
 	depends on ARCH_QCOM

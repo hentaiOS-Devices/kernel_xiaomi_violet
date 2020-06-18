@@ -337,7 +337,6 @@
 			<106 512 0 0>,
 			<106 512 0 0>;
 		qcom,msm-bus-vector-dyn-vote;
-		qcom,cpp-cx-ipeak = <&cx_ipeak_lm 7>;
 		resets = <&clock_gcc GCC_CAMSS_MICRO_BCR>;
 		reset-names = "micro_iface_reset";
 		qcom,src-clock-rates = <120000000 240000000 320000000
@@ -518,7 +517,6 @@
 			<29 512 0 0>,
 			<29 512 100000000 100000000>;
 		qcom,msm-bus-vector-dyn-vote;
-		qcom,vfe-cx-ipeak = <&cx_ipeak_lm 7>;
 	};
 
 	vfe1: qcom,vfe1@5c14000 {
@@ -596,7 +594,6 @@
 			<29 512 0 0>,
 			<29 512 100000000 100000000>;
 		qcom,msm-bus-vector-dyn-vote;
-		qcom,vfe-cx-ipeak = <&cx_ipeak_lm 7>;
 	};
 
 	qcom,vfe {

@@ -1,0 +1,78 @@
+/* Copyright (c) 2020, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "../qcom-base/trinket-idp.dtsi"
+#include "ginkgo-trinket-audio.dtsi"
+#include "ginkgo-trinket-battery.dtsi"
+#include "ginkgo-trinket-display.dtsi"
+#include "ginkgo-trinket-fingerprint.dtsi"
+#include "ginkgo-trinket-ir.dtsi"
+#include "ginkgo-trinket-memory.dtsi"
+#include "ginkgo-trinket-pinctrl.dtsi"
+#include "ginkgo-trinket-touchscreen.dtsi"
+#include "ginkgo-trinket-usb.dtsi"
+
+&soc {
+	ramoops {
+		compatible = "ramoops";
+		memory-region = <&ramoops_mem>;
+		alt-memory-region = <&alt_ramoops_mem>;
+		record-size = <0x20000>;
+		console-size = <0x100000>;
+		pmsg-size = <0x80000>;
+	};
+
+	access_ramoops@0 {
+		compatible = "access_ramoops";
+		label = "metadata";
+		memory-region = <&ramoops_meta_mem>;
+	};
+
+	access_ramoops@1 {
+		compatible = "access_ramoops";
+		label = "ramoops";
+		memory-region = <&alt_ramoops_mem>;
+	};
+
+	access_kregistry@2 {
+		compatible = "access_ramoops";
+		label = "kregistry";
+		memory-region = <&kregistry_mem>;
+	};
+
+	qcom,msm-imem@146aa000 {
+		rst_info@d38 {
+			compatible = "msm-imem-rst_info";
+			reg = <0xd38 100>;
+		};
+	};
+};
+
+&firmware {
+	android {
+		fstab {
+			vendor {
+				dev = "/dev/block/platform/soc/4744000.sdhci/by-name/vendor";
+				fsmgr_flags = "wait,avb";
+			};
+		};
+	};
+};
+
+&sdhc_2 {
+	cd-gpios = <&tlmm 98 0>;
+};
+
+// Force warm reboot on 'shutdown,thermal'
+&msm_poweroff {
+	qcom,force-warm-reboot-on-thermal-shutdown;
+};
