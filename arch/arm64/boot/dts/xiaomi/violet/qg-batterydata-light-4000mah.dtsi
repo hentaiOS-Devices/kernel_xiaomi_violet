@@ -1,19 +1,26 @@
-
 qcom,3884533_LC_M6300_Coslight_4000mAH_FG {
-    /* 3884533_LC_M6300_Coslight_4000mAH_PM6150_FG_averaged_MasterSlave_Feb20th2019 */
-    qcom,max-voltage-uv = <4400000>;
-    qcom,fg-cc-cv-threshold-uv = <4390000>;
-    qcom,fastchg-current-ma = <3000>;
+	/* 3884533_LC_M6300_Coslight_4000mAH_PM6150_FG_averaged_MasterSlave_Feb20th2019 */
+	qcom,max-voltage-uv = <4400000>;
+	qcom,fg-cc-cv-threshold-uv = <4390000>;
+	qcom,fastchg-current-ma = <3000>;
 	qcom,jeita-fcc-ranges = <0 50 390000 51 150 1170000 151 450 3000000 451 600 1950000>;
 	qcom,jeita-fv-ranges = <0 50 4400000 51 150 4400000 151 450 4400000 451 600 4100000>;
 
-	qcom,fg-cc-cv-threshold-mv = <4390>;
+	/* COOL = 5 DegC, WARM = 45 DegC */
+	qcom,jeita-soft-thresholds = <21270 8377>;
+	/* COLD = 0 DegC, HOT = 60 DegC */
+	qcom,jeita-hard-thresholds = <22734 5286>;
+
+	qcom,jeita-soft-hys-thresholds = <17604 8629>;
+	qcom,jeita-soft-fcc-ua = <2000000 2000000>;
+	qcom,jeita-soft-fv-uv = <4400000 4100000>;
+
 	qcom,nom-batt-capacity-mah = <4000>;
-    qcom,batt-id-kohm = <100>;
-    qcom,battery-beta = <4250>;
-    qcom,battery-therm-kohm = <100>;
-    qcom,battery-type = "3884533_LC_M6300_Coslight_4000mAH_PM6150_FG_averaged_MasterSlave_Feb20th2019";
-    qcom,qg-batt-profile-ver = <100>;
+	qcom,batt-id-kohm = <100>;
+	qcom,battery-beta = <4250>;
+	qcom,battery-therm-kohm = <100>;
+	qcom,battery-type = "3884533_LC_M6300_Coslight_4000mAH_PM6150_FG_averaged_MasterSlave_Feb20th2019";
+	qcom,qg-batt-profile-ver = <100>;
 
 	qcom,fcc1-temp-lut {
 		qcom,lut-col-legend = <0 10 25 40 50>;

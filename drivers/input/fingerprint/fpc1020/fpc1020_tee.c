@@ -728,12 +728,14 @@ static struct platform_driver fpc1020_driver = {
 
 static int __init fpc1020_init(void)
 {
+	int rc;
+
     if (strstr(saved_command_line, "gdx")) {
 		pr_info("FPC going to sleep\n");
 		return -1;
 	}
 
-	int rc = platform_driver_register(&fpc1020_driver);
+	rc = platform_driver_register(&fpc1020_driver);
 
 	if (!rc)
 		pr_info("%s OK\n", __func__);

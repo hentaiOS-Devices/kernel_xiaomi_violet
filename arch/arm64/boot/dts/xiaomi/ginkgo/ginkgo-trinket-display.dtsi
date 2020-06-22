@@ -9,9 +9,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#include "display/dsi-panel-ft8719-huaxing-fhd-video.dtsi"
-#include "display/dsi-panel-nt36672a-shenchao-fhd-video.dtsi"
-#include "display/dsi-panel-nt36672a-tianma-fhd-video.dtsi"
+#include "dsi-panel-ft8719-huaxing-fhd-video.dtsi"
+#include "dsi-panel-nt36672a-shenchao-fhd-video.dtsi"
+#include "dsi-panel-nt36672a-tianma-fhd-video.dtsi"
 
 &soc {
 	dsi_ft8719_huaxing_vid_display: qcom,dsi-display@0 {

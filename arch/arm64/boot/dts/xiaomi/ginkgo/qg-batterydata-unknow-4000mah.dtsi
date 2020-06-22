@@ -4,7 +4,7 @@
  * Copyright (C) 2019 XiaoMi, Inc.
  */
 
-qcom,atl_4000mah {
+qcom,unknow_4000mah {
     /* 3668667_LC_M516_ATL_4000mAH_FG_averaged_MasterSlave_Nov3rd2018 */
 	qcom,max-voltage-uv = <4400000>;
 	qcom,fg-cc-cv-threshold-uv = <4390000>;
@@ -13,29 +13,28 @@ qcom,atl_4000mah {
     	qcom,battery-beta = <4250>;
 	qcom,battery-therm-kohm = <100>;
 	qcom,battery-type =
-		"3668667_LC_M516_ATL_4000mAH_FG_averaged_MasterSlave_Nov3rd2018";
+		"unknow-default";
 	qcom,qg-batt-profile-ver = <100>;
 
 	qcom,jeita-fcc-ranges = <0   50   400000
-                                51   150  2000000
+				51   150  1200000 
 				151  450  3000000
 				451  600  2000000>;
 	qcom,jeita-fv-ranges = <0    50   4400000
 				51   150  4400000
 				151  450  4400000
 				451  600   4100000>;
-	qcom,step-chg-ranges = <3600000  3800000  3450000
-				3801000  4300000  2760000
-				4301000  4350000  2070000>;
+	qcom,ocv-based-step-chg;
 
 	/* COOL = 5 DegC, WARM = 45 DegC */
 	qcom,jeita-soft-thresholds = <0x5316 0x20B9>;
 	/* COLD = 0 DegC, HOT = 60 DegC */
 	qcom,jeita-hard-thresholds = <0x58CE 0x14A6>;
 
-	qcom,jeita-soft-hys-thresholds = <0x44C4 0x21B5>;
-	qcom,jeita-soft-fcc-ua = <2000000 2000000>;
-	qcom,jeita-soft-fv-uv = <4400000 4100000>;
+	/* COOL hys = 8 DegC, WARM hys = 37 DegC */
+	qcom,jeita-soft-hys-thresholds = <0x4126 0x223e>;
+	qcom,jeita-soft-fcc-ua = <1725000 2760000>;
+	qcom,jeita-soft-fv-uv = <4250000 4250000>;
 
 	qcom,fcc1-temp-lut {
 		qcom,lut-col-legend = <0 10 25 40 50>;

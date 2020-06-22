@@ -11,17 +11,14 @@
  */
 
 &mtp_batterydata {
-	#include "battery/LC_M6300_ATL4000mAh_3951184_FG.dtsi"
-	#include "battery/LC_M6300_Coslight_4000mAh_3884533_FG.dtsi"
-	#include "battery/LC_M6300_Sunwoda4000mAh_3632066_FG.dtsi"
+	#include "qg-batterydata-atl-4000mah.dtsi"
+	#include "qg-batterydata-light-4000mah.dtsi"
+	#include "qg-batterydata-sun-4000mah.dtsi"
 };
 
 &pm6150_qg {
 	qcom,cl-disable = <1>;
-	qcom,qg-iterm-ma = <350>;
-	qcom,s3-entry-fifo-length = <2>;
-	qcom,s3-entry-ibat-ua = <30000>;
-	qcom,s3-exit-ibat-ua = <50000>;
+	qcom,qg-iterm-ma = <300>;
 	qcom,vbatt-empty-cold-mv = <3100>;
 	qcom,vbatt-empty-mv = <3100>;
 	qcom,vbatt-low-cold-mv = <3700>;
@@ -29,10 +26,22 @@
 };
 
 &pm6150_charger {
+	io-channels = <&pm6150_vadc ADC_USB_IN_V_16>,
+		      <&pm6150_vadc ADC_USB_IN_I>,
+		      <&pm6150_vadc ADC_SBUx>,
+		      <&pm6150_vadc ADC_CHG_TEMP>,
+		      <&pm6150_vadc ADC_VPH_PWR>;
+	io-channel-names = "usb_in_voltage",
+			   "usb_in_current",
+			   "sbux_res",
+			   "vph_voltage",
+			   "chg_temp";
+
 	google,usb-port-tz-name = "usbc-therm-adc";
+	google,wdog_snarl_disable;
+	qcom,dc-icl-ua = <1100000>;
 	qcom,chg-term-current-ma = <(-200)>;
-	qcom,chg-term-src = <1>;
-	qcom,sec-charger-config = <1>;
+	qcom,sec-charger-config = <0>;
 	qcom,auto-recharge-soc = <99>;
 	qcom,thermal-mitigation = <3000000 1850000 925000
 			500000>;

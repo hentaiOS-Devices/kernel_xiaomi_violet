@@ -11,17 +11,14 @@
  */
 
 &mtp_batterydata {
-	#include "battery/qg-batterydata-atl-4000mah.dtsi"
-	#include "battery/qg-batterydata-light-4000mah.dtsi"
-	#include "battery/qg-batterydata-unknow-4000mah.dtsi"
+	#include "qg-batterydata-atl-4000mah.dtsi"
+	#include "qg-batterydata-light-4000mah.dtsi"
+	#include "qg-batterydata-unknow-4000mah.dtsi"
 };
 
 &pmi632_qg {
 	qcom,cl-disable = <1>;
-	qcom,qg-iterm-ma = <350>;
-	qcom,s3-entry-fifo-length = <2>;
-	qcom,s3-entry-ibat-ua = <30000>;
-	qcom,s3-exit-ibat-ua = <50000>;
+	qcom,qg-iterm-ma = <300>;
 	qcom,vbatt-empty-cold-mv = <3100>;
 	qcom,vbatt-empty-mv = <3100>;
 	qcom,vbatt-low-cold-mv = <3700>;
@@ -30,8 +27,7 @@
 
 &pmi632_charger {
 	qcom,chg-term-current-ma = <(-200)>;
-	qcom,chg-term-src = <1>;
-	qcom,sec-charger-config = <1>;
+	qcom,sec-charger-config = <0>;
 	qcom,auto-recharge-soc = <99>;
 	qcom,thermal-mitigation = <3000000 1850000 925000
 			500000>;

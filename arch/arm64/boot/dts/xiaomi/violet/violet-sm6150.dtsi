@@ -10,7 +10,6 @@
  * GNU General Public License for more details.
  */
 
-#include "../qcom-base/sm6150-idp.dtsi"
 #include "violet-sm6150-audio.dtsi"
 #include "violet-sm6150-battery.dtsi"
 #include "violet-sm6150-camera.dtsi"
