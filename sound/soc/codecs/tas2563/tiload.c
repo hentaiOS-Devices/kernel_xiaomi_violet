@@ -20,7 +20,6 @@
 ** =============================================================================
 */
 
-
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>
@@ -38,9 +37,6 @@
 
 #include "tiload.h"
 
-/* enable debug prints in the driver */
-#define DEBUG
-
 static struct cdev *tiload_cdev;
 static int tiload_major; /* Dynamic allocation of Mjr No. */
 static int tiload_opened; /* Dynamic allocation of Mjr No. */
@@ -51,7 +47,6 @@ static unsigned int magic_num;
 static char gPage;
 static char gBook;
 /******************************** Debug section *****************************/
-
 
 /*----------------------------------------------------------------------------
  * Function : tiload_open
@@ -66,7 +61,8 @@ static int tiload_open(struct inode *in, struct file *filp)
 	dev_info(pTAS2563->dev, "%s\n", __func__);
 
 	if (tiload_opened) {
-		dev_info(pTAS2563->dev, "%s device is already opened\n", "tiload");
+		dev_info(pTAS2563->dev, "%s device is already opened\n",
+			 "tiload");
 		return -EINVAL;
 	}
 	filp->private_data = (void *)pTAS2563;
@@ -82,7 +78,8 @@ static int tiload_open(struct inode *in, struct file *filp)
  */
 static int tiload_release(struct inode *in, struct file *filp)
 {
-	struct tas2563_priv *pTAS2563 = (struct tas2563_priv *)filp->private_data;
+	struct tas2563_priv *pTAS2563 =
+		(struct tas2563_priv *)filp->private_data;
 
 	dev_info(pTAS2563->dev, "%s\n", __func__);
 	filp->private_data = NULL;
@@ -97,22 +94,21 @@ static int tiload_release(struct inode *in, struct file *filp)
  * Purpose  : read from codec
  *----------------------------------------------------------------------------
  */
-static ssize_t tiload_read(struct file *filp, char __user *buf,
-	size_t count, loff_t *offset)
+static ssize_t tiload_read(struct file *filp, char __user *buf, size_t count,
+			   loff_t *offset)
 {
-	struct tas2563_priv *pTAS2563 = (struct tas2563_priv *)filp->private_data;
+	struct tas2563_priv *pTAS2563 =
+		(struct tas2563_priv *)filp->private_data;
 	static char rd_data[MAX_LENGTH + 1];
 	unsigned int nCompositeRegister = 0, Value = 0;
 	char reg_addr;
 	size_t size;
 	int ret = 0;
-#ifdef DEBUG
-	/* int i; */
-#endif
 
 	dev_info(pTAS2563->dev, "%s\n", __func__);
 	if (count > MAX_LENGTH) {
-		dev_err(pTAS2563->dev, "Max %d bytes can be read\n", MAX_LENGTH);
+		dev_err(pTAS2563->dev, "Max %d bytes can be read\n",
+			MAX_LENGTH);
 		return -EINVAL;
 	}
 
@@ -126,31 +122,27 @@ static ssize_t tiload_read(struct file *filp, char __user *buf,
 	size = count;
 
 	nCompositeRegister = BPR_REG(gBook, gPage, reg_addr);
-	dev_dbg(pTAS2563->dev, " nCompositeRegister:0x%x  gBook:0x%x gpage:0x%x \n", nCompositeRegister, gBook, gPage);
+	dev_dbg(pTAS2563->dev,
+		" nCompositeRegister:0x%x  gBook:0x%x gpage:0x%x \n",
+		nCompositeRegister, gBook, gPage);
 	if (count == 1) {
-		ret =
-			pTAS2563->read(pTAS2563, 0x80000000 | nCompositeRegister, &Value);
+		ret = pTAS2563->read(pTAS2563, 0x80000000 | nCompositeRegister,
+				     &Value);
 		if (ret >= 0)
-			rd_data[0] = (char) Value;
+			rd_data[0] = (char)Value;
 	} else if (count > 1) {
-		ret =
-			pTAS2563->bulk_read(pTAS2563, 0x80000000 | nCompositeRegister,
-			rd_data, size);
+		ret = pTAS2563->bulk_read(pTAS2563,
+					  0x80000000 | nCompositeRegister,
+					  rd_data, size);
 	}
 	if (ret < 0)
-		dev_err(pTAS2563->dev, "%s, %d, ret=%d, count=%zu error happen!\n",
-			__func__, __LINE__, ret, count);
+		dev_err(pTAS2563->dev,
+			"%s, %d, ret=%d, count=%zu error happen!\n", __func__,
+			__LINE__, ret, count);
 
-#ifdef DEBUG
-	dev_info(pTAS2563->dev, "read size = %d, reg_addr= %x , count = %d\n",
-		(int) size, reg_addr, (int) count);
-/*	for (i = 0; i < (int) size; i++) {
-		dev_dbg(pTAS2563->dev, "rd_data[%d]=%x\n", i, rd_data[i]);
-	}
-*/
-#endif
 	if (size != count)
-		dev_err(pTAS2563->dev, "read %d registers from the codec\n", (int) size);
+		dev_err(pTAS2563->dev, "read %d registers from the codec\n",
+			(int)size);
 
 	if (copy_to_user(buf, rd_data, size) != 0) {
 		dev_err(pTAS2563->dev, "copy_to_user failed\n");
@@ -168,38 +160,33 @@ static ssize_t tiload_read(struct file *filp, char __user *buf,
  *----------------------------------------------------------------------------
  */
 static ssize_t tiload_write(struct file *filp, const char __user *buf,
-	size_t count, loff_t *offset)
+			    size_t count, loff_t *offset)
 {
-	struct tas2563_priv *pTAS2563 = (struct tas2563_priv *)filp->private_data;
+	struct tas2563_priv *pTAS2563 =
+		(struct tas2563_priv *)filp->private_data;
 	static char wr_data[MAX_LENGTH + 1];
 	char *pData = wr_data;
 	size_t size;
 	unsigned int nCompositeRegister = 0;
 	unsigned int nRegister;
 	int ret = 0;
-#ifdef DEBUG
-	/* int i; */
-#endif
+
 	dev_info(pTAS2563->dev, "%s\n", __func__);
 
 	if (count > MAX_LENGTH) {
-		dev_err(pTAS2563->dev, "Max %d bytes can be read\n", MAX_LENGTH);
+		dev_err(pTAS2563->dev, "Max %d bytes can be read\n",
+			MAX_LENGTH);
 		return -EINVAL;
 	}
 
 	/* copy buffer from user space  */
 	size = copy_from_user(wr_data, buf, count);
 	if (size != 0) {
-		dev_err(pTAS2563->dev, "copy_from_user failure %d\n", (int) size);
+		dev_err(pTAS2563->dev, "copy_from_user failure %d\n",
+			(int)size);
 		return -EINVAL;
 	}
-#ifdef DEBUG
-	dev_info(pTAS2563->dev, "write size = %zu\n", count);
-/* for (i = 0; i < (int) count; i++) {
-*		dev_info(pTAS2563->dev, "wr_data[%d]=%x\n", i, wr_data[i]);
-*	}
-*/
-#endif
+
 	nRegister = wr_data[0];
 	size = count;
 	if ((nRegister == 127) && (gPage == 0)) {
@@ -215,17 +202,17 @@ static ssize_t tiload_write(struct file *filp, const char __user *buf,
 
 	nCompositeRegister = BPR_REG(gBook, gPage, nRegister);
 	if (count == 2) {
-		ret =
-			pTAS2563->write(pTAS2563, 0x80000000 | nCompositeRegister,
-			pData[1]);
+		ret = pTAS2563->write(pTAS2563, 0x80000000 | nCompositeRegister,
+				      pData[1]);
 	} else if (count > 2) {
-		ret =
-			pTAS2563->bulk_write(pTAS2563, 0x80000000 | nCompositeRegister,
-			&pData[1], count - 1);
+		ret = pTAS2563->bulk_write(pTAS2563,
+					   0x80000000 | nCompositeRegister,
+					   &pData[1], count - 1);
 	}
 
 	if (ret < 0)
-		dev_err(pTAS2563->dev, "%s, %d, ret=%d, count=%zu, ERROR Happen\n", __func__,
+		dev_err(pTAS2563->dev,
+			"%s, %d, ret=%d, count=%zu, ERROR Happen\n", __func__,
 			__LINE__, ret, count);
 
 	return size;
@@ -241,14 +228,15 @@ static void tiload_route_IO(struct tas2563_priv *pTAS2563, unsigned int bLock)
 
 static long tiload_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	struct tas2563_priv *pTAS2563 = (struct tas2563_priv *)filp->private_data;
+	struct tas2563_priv *pTAS2563 =
+		(struct tas2563_priv *)filp->private_data;
 	long num = 0;
-	void __user *argp = (void __user *) arg;
+	void __user *argp = (void __user *)arg;
 	int val;
 	struct BPR bpr;
 
 	dev_info(pTAS2563->dev, "%s, cmd=0x%x\n", __func__, cmd);
-/*  if (_IOC_TYPE(cmd) != TILOAD_IOC_MAGIC)
+	/*  if (_IOC_TYPE(cmd) != TILOAD_IOC_MAGIC)
  *      return -ENOTTY;
  */
 
@@ -265,8 +253,9 @@ static long tiload_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 	case TILOAD_BPR_WRITE:
 		num = copy_from_user(&bpr, argp, sizeof(struct BPR));
-		dev_info(pTAS2563->dev, "TILOAD_BPR_WRITE: 0x%02X, 0x%02X, 0x%02X\n\r", bpr.nBook,
-			bpr.nPage, bpr.nRegister);
+		dev_info(pTAS2563->dev,
+			 "TILOAD_BPR_WRITE: 0x%02X, 0x%02X, 0x%02X\n\r",
+			 bpr.nBook, bpr.nPage, bpr.nRegister);
 		break;
 	case TILOAD_IOCTL_SET_CHL:
 		break;
@@ -287,59 +276,66 @@ static long tiload_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 }
 
 #ifdef CONFIG_COMPAT
-static long tiload_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+static long tiload_compat_ioctl(struct file *filp, unsigned int cmd,
+				unsigned long arg)
 {
-	struct tas2563_priv *pTAS2563 = (struct tas2563_priv *)filp->private_data;
+	struct tas2563_priv *pTAS2563 =
+		(struct tas2563_priv *)filp->private_data;
 	long nResult = 0;
 
 	switch (cmd) {
 	case TILOAD_COMPAT_IOMAGICNUM_GET:
-		dev_info(pTAS2563->dev, "%s, TILOAD_COMPAT_IOMAGICNUM_GET=0x%x\n",
-			__func__, cmd);
+		dev_info(pTAS2563->dev,
+			 "%s, TILOAD_COMPAT_IOMAGICNUM_GET=0x%x\n", __func__,
+			 cmd);
 		nResult = tiload_ioctl(filp, TILOAD_IOMAGICNUM_GET,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_IOMAGICNUM_SET:
-		dev_info(pTAS2563->dev, "%s, TILOAD_COMPAT_IOMAGICNUM_SET=0x%x\n",
-			__func__, cmd);
+		dev_info(pTAS2563->dev,
+			 "%s, TILOAD_COMPAT_IOMAGICNUM_SET=0x%x\n", __func__,
+			 cmd);
 		nResult = tiload_ioctl(filp, TILOAD_IOMAGICNUM_SET,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_BPR_READ:
 		dev_info(pTAS2563->dev, "%s, TILOAD_COMPAT_BPR_READ=0x%x\n",
-			__func__, cmd);
+			 __func__, cmd);
 		nResult = tiload_ioctl(filp, TILOAD_BPR_READ,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_BPR_WRITE:
 		dev_info(pTAS2563->dev, "%s, TILOAD_COMPAT_BPR_WRITE=0x%x\n",
-			__func__, cmd);
+			 __func__, cmd);
 		nResult = tiload_ioctl(filp, TILOAD_BPR_WRITE,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_IOCTL_SET_CHL:
-		dev_info(pTAS2563->dev, "%s, TILOAD_COMPAT_IOCTL_SET_CHL=0x%x\n",
-			__func__, cmd);
+		dev_info(pTAS2563->dev,
+			 "%s, TILOAD_COMPAT_IOCTL_SET_CHL=0x%x\n", __func__,
+			 cmd);
 		nResult = tiload_ioctl(filp, TILOAD_IOCTL_SET_CHL,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_IOCTL_SET_CONFIG:
-		dev_info(pTAS2563->dev, "%s, TILOAD_COMPAT_IOCTL_SET_CONFIG=0x%x\n",
-			__func__, cmd);
+		dev_info(pTAS2563->dev,
+			 "%s, TILOAD_COMPAT_IOCTL_SET_CONFIG=0x%x\n", __func__,
+			 cmd);
 		nResult = tiload_ioctl(filp, TILOAD_IOCTL_SET_CONFIG,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_IOCTL_SET_CALIBRATION:
-		dev_info(pTAS2563->dev, "%s, TILOAD_COMPAT_IOCTL_SET_CALIBRATION=0x%x\n",
-			__func__, cmd);
+		dev_info(pTAS2563->dev,
+			 "%s, TILOAD_COMPAT_IOCTL_SET_CALIBRATION=0x%x\n",
+			 __func__, cmd);
 		nResult = tiload_ioctl(filp, TILOAD_IOCTL_SET_CALIBRATION,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	default:
@@ -382,7 +378,8 @@ int tiload_driver_init(struct tas2563_priv *pTAS2563)
 
 	result = alloc_chrdev_region(&dev, 0, 1, DEVICE_NAME);
 	if (result < 0) {
-		dev_err(pTAS2563->dev, "cannot allocate major number %d\n", tiload_major);
+		dev_err(pTAS2563->dev, "cannot allocate major number %d\n",
+			tiload_major);
 		return result;
 	}
 	tiload_class = class_create(THIS_MODULE, DEVICE_NAME);
@@ -403,7 +400,8 @@ int tiload_driver_init(struct tas2563_priv *pTAS2563)
 		tiload_cdev = NULL;
 		return 1;
 	}
-	dev_info(pTAS2563->dev, "Registered TiLoad driver, Major number: %d\n", tiload_major);
+	dev_info(pTAS2563->dev, "Registered TiLoad driver, Major number: %d\n",
+		 tiload_major);
 	/* class_device_create(tiload_class, NULL, dev, NULL, DEVICE_NAME, 0); */
 	return 0;
 }
