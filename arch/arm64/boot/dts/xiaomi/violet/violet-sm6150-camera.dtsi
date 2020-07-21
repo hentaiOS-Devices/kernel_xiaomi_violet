@@ -15,7 +15,9 @@
 };
 
 &actuator_rear_aux {
-    rgltr-load-current = <220000>;
+	rgltr-min-voltage = <3000000>;
+	rgltr-max-voltage = <3000000>;
+	rgltr-load-current = <80000>;
 };
 
 &cam_cci {
