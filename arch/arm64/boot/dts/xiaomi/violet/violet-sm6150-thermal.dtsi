@@ -11,7 +11,7 @@
  */
 
 &soc {
-	google_overheat_mitigation: google,overheat_mitigation{
+	google_overheat_mitigation: google,overheat_mitigation {
 		compatible = "google,overheat_mitigation";
 		#cooling-cells = <2>;
 		google,begin-mitigation-temp = <500>;
@@ -24,23 +24,23 @@
 
  &thermal_zones {
 	camera-step {
-        disable-thermal-zone;
+		disable-thermal-zone;
 	};
 
 	display-step {
-        disable-thermal-zone;
+		disable-thermal-zone;
 	};
 
 	mdm-core-step {
-        disable-thermal-zone;
+		disable-thermal-zone;
 	};
 
 	video-step {
-        disable-thermal-zone;
+		disable-thermal-zone;
 	};
 
 	wlan-step {
-        disable-thermal-zone;
+		disable-thermal-zone;
 	};
 
 	conn-therm {
@@ -79,6 +79,7 @@
 		polling-delay = <0>;
 		thermal-governor = "user_space";
 		thermal-sensors = <&pm6150l_adc_tm ADC_AMUX_THM2_PU2>;
+		wake-capable-sensor;
 		trips {
 			active-config0 {
 				temperature = <125000>;
@@ -93,6 +94,7 @@
 		polling-delay = <0>;
 		thermal-governor = "step_wise";
 		thermal-sensors = <&pm6150_adc_tm ADC_AMUX_THM4_PU2>;
+		wake-capable-sensor;
 		trips {
 			usb_throttling_lv1: usb-throttling_lv1 {
 				temperature = <55000>;
@@ -114,6 +116,7 @@
 		polling-delay = <0>;
 		thermal-governor = "user_space";
 		thermal-sensors = <&pm6150_adc_tm ADC_AMUX_THM4_PU2>;
+		wake-capable-sensor;
 		trips {
 			active-config0 {
 				temperature = <125000>;
