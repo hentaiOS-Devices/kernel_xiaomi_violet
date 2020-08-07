@@ -49,9 +49,11 @@ int cam_sync_create(int32_t *sync_obj, const char *name)
 	long idx;
 	bool bit;
 
+	mutex_lock(&sync_dev->bitmap_lock);
 	do {
 		idx = find_first_zero_bit(sync_dev->bitmap, CAM_SYNC_MAX_OBJS);
 		if (idx >= CAM_SYNC_MAX_OBJS) {
+			mutex_unlock(&sync_dev->bitmap_lock);
 			CAM_ERR(CAM_SYNC,
 				"Error: Unable to Create Sync Idx = %d Reached Max!!",
 				idx);
@@ -72,12 +74,14 @@ int cam_sync_create(int32_t *sync_obj, const char *name)
 			idx);
 		clear_bit(idx, sync_dev->bitmap);
 		spin_unlock_bh(&sync_dev->row_spinlocks[idx]);
+		mutex_unlock(&sync_dev->bitmap_lock);
 		return -EINVAL;
 	}
 
 	*sync_obj = idx;
 	CAM_DBG(CAM_SYNC, "sync_obj: %i", *sync_obj);
 	spin_unlock_bh(&sync_dev->row_spinlocks[idx]);
+	mutex_unlock(&sync_dev->bitmap_lock);
 
 	return rc;
 }
@@ -309,15 +313,19 @@ int cam_sync_merge(int32_t *sync_obj, uint32_t num_objs, int32_t *merged_obj)
 	for (i = 0; i < num_objs; i++) {
 		rc = cam_sync_check_valid(sync_obj[i]);
 		if (rc) {
-			CAM_ERR(CAM_SYNC, "Sync_obj[%d] %d valid check fail",
-				i, sync_obj[i]);
+			CAM_ERR(CAM_SYNC, "Sync_obj[%d] %d valid check fail", i,
+				sync_obj[i]);
 			return rc;
 		}
 	}
+
+	mutex_lock(&sync_dev->bitmap_lock);
 	do {
 		idx = find_first_zero_bit(sync_dev->bitmap, CAM_SYNC_MAX_OBJS);
-		if (idx >= CAM_SYNC_MAX_OBJS)
+		if (idx >= CAM_SYNC_MAX_OBJS) {
+			mutex_unlock(&sync_dev->bitmap_lock);
 			return -ENOMEM;
+		}
 		bit = test_and_set_bit(idx, sync_dev->bitmap);
 	} while (bit);
 
@@ -330,11 +338,13 @@ int cam_sync_merge(int32_t *sync_obj, uint32_t num_objs, int32_t *merged_obj)
 			idx);
 		clear_bit(idx, sync_dev->bitmap);
 		spin_unlock_bh(&sync_dev->row_spinlocks[idx]);
+		mutex_unlock(&sync_dev->bitmap_lock);
 		return -EINVAL;
 	}
 	CAM_DBG(CAM_SYNC, "Init row at idx:%ld to merge objects", idx);
 	*merged_obj = idx;
 	spin_unlock_bh(&sync_dev->row_spinlocks[idx]);
+	mutex_unlock(&sync_dev->bitmap_lock);
 
 	return 0;
 }
@@ -1029,6 +1039,7 @@ static int cam_sync_probe(struct platform_device *pdev)
 
 	sync_dev->err_cnt = 0;
 	mutex_init(&sync_dev->table_lock);
+	mutex_init(&sync_dev->bitmap_lock);
 	spin_lock_init(&sync_dev->cam_sync_eventq_lock);
 
 	for (idx = 0; idx < CAM_SYNC_MAX_OBJS; idx++)
@@ -1097,12 +1108,14 @@ mcinit_fail:
 	video_device_release(sync_dev->vdev);
 vdev_fail:
 	mutex_destroy(&sync_dev->table_lock);
+	mutex_destroy(&sync_dev->bitmap_lock);
 	kfree(sync_dev);
 	return rc;
 }
 
 static int cam_sync_remove(struct platform_device *pdev)
 {
+	mutex_destroy(&sync_dev->bitmap_lock);
 	v4l2_device_unregister(sync_dev->vdev->v4l2_dev);
 	cam_sync_media_controller_cleanup(sync_dev);
 	video_device_release(sync_dev->vdev);
