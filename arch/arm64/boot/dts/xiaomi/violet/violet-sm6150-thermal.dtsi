@@ -23,46 +23,6 @@
 };
 
  &thermal_zones {
-	camera-step {
-		disable-thermal-zone;
-	};
-
-	display-step {
-		disable-thermal-zone;
-	};
-
-	mdm-core-step {
-		disable-thermal-zone;
-	};
-
-	video-step {
-		disable-thermal-zone;
-	};
-
-	wlan-step {
-		disable-thermal-zone;
-	};
-
-	conn-therm {
-		disable-thermal-zone;
-	};
-
-	video-lowf {
-		disable-thermal-zone;
-	};
-
-	wlan-lowf {
-		disable-thermal-zone;
-	};
-
-	display-lowf {
-		disable-thermal-zone;
-	};
-
-	quiet-therm-step {
-		disable-thermal-zone;
-	};
-
 	sdm-therm {
 		thermal-sensors = <&pm6150l_adc_tm ADC_AMUX_THM2_PU2>;
 		trips {
@@ -124,5 +84,133 @@
 				type = "passive";
 			};
 		};
+	};
+
+	pm6150-ibat-lvl1 {
+		trips {
+			ibat_lvl1:ibat-lvl1 {
+				temperature = <5500>;
+			};
+		};
+	};
+
+	gpuss-max-step {
+		polling-delay = <0>;
+	};
+
+	gpuss-0-step {
+		polling-delay-passive = <10>;
+		polling-delay = <0>;
+		thermal-sensors = <&tsens0 13>;
+		thermal-governor = "step_wise";
+		wake-capable-sensor;
+		trips {
+			gpuss0_trip0: gpuss0-trip0 {
+				temperature = <95000>;
+				hysteresis = <1000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			gpu_cdev {
+				trip = <&gpuss0_trip0>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT
+							THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	gpuss-1-step {
+		polling-delay-passive = <10>;
+		polling-delay = <0>;
+		thermal-sensors = <&tsens0 14>;
+		thermal-governor = "step_wise";
+		wake-capable-sensor;
+		trips {
+			gpuss1_trip0: gpuss1-trip0 {
+				temperature = <95000>;
+				hysteresis = <1000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			gpu_cdev {
+				trip = <&gpuss1_trip0>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT
+							THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	/* Remove redundant QCT thermal zones */
+	camera-step {
+		disable-thermal-zone;
+	};
+
+	display-step {
+		disable-thermal-zone;
+	};
+
+	mdm-core-step {
+		disable-thermal-zone;
+	};
+
+	video-step {
+		disable-thermal-zone;
+	};
+
+	wlan-step {
+		disable-thermal-zone;
+	};
+
+	conn-therm {
+		disable-thermal-zone;
+	};
+
+	video-lowf {
+		disable-thermal-zone;
+	};
+
+	wlan-lowf {
+		disable-thermal-zone;
+	};
+
+	display-lowf {
+		disable-thermal-zone;
+	};
+
+	quiet-therm-step {
+		disable-thermal-zone;
+	};
+
+	/* Disable QCT default BCL throttling */
+	soc {
+		status = "disabled";
+	};
+
+	pm6150-bcl-lvl0 {
+		status = "disabled";
+	};
+
+	pm6150-bcl-lvl1	{
+		status = "disabled";
+	};
+
+	pm6150-bcl-lvl2	{
+		status = "disabled";
+	};
+
+	pm6150l-bcl-lvl0 {
+		status = "disabled";
+	};
+
+	pm6150l-bcl-lvl1 {
+		status = "disabled";
+	};
+
+	pm6150l-bcl-lvl2 {
+		status = "disabled";
 	};
 };
