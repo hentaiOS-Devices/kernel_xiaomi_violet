@@ -28,20 +28,24 @@
 &pm6150_charger {
 	io-channels = <&pm6150_vadc ADC_USB_IN_V_16>,
 		      <&pm6150_vadc ADC_USB_IN_I>,
-		      <&pm6150_vadc ADC_SBUx>,
 		      <&pm6150_vadc ADC_CHG_TEMP>,
+		      <&pm6150_vadc ADC_DIE_TEMP>,
+		      <&pm6150_vadc ADC_AMUX_THM4_PU2>,
+		      <&pm6150_vadc ADC_SBUx>,
 		      <&pm6150_vadc ADC_VPH_PWR>;
 	io-channel-names = "usb_in_voltage",
 			   "usb_in_current",
+			   "chg_temp",
+			   "die_temp",
+			   "conn_temp",
 			   "sbux_res",
-			   "vph_voltage",
-			   "chg_temp";
+			   "vph_voltage";
 
 	google,usb-port-tz-name = "usbc-therm-adc";
 	google,wdog_snarl_disable;
-	qcom,dc-icl-ua = <1100000>;
-	qcom,chg-term-current-ma = <(-200)>;
-	qcom,sec-charger-config = <0>;
+	google,sdam_sts_disable;
+	qcom,chg-term-src = <1>;
+	qcom,chg-term-current-ma = <(-154)>;
 	qcom,auto-recharge-soc = <99>;
 	qcom,thermal-mitigation = <3000000 2450000 1850000
 			925000 500000>;
