@@ -2447,7 +2447,7 @@ static struct snd_soc_dai_ops tas2563_dai_ops = {
 	 SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S24_3LE |                  \
 	 SNDRV_PCM_FMTBIT_S32_LE)
 
-#define TAS2563_RATES SNDRV_PCM_RATE_8000_48000
+#define TAS2563_RATES SNDRV_PCM_RATE_8000_192000
 
 static struct snd_soc_dai_driver tas2563_dai_driver[] = {
 	{
