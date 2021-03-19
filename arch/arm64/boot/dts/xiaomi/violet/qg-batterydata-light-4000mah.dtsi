@@ -17,7 +17,7 @@ qcom,3884533_LC_M6300_Coslight_4000mAH_FG {
 
 	qcom,nom-batt-capacity-mah = <4000>;
 	qcom,batt-id-kohm = <100>;
-	qcom,battery-beta = <4250>;
+	qcom,battery-beta = <3985>;
 	qcom,battery-therm-kohm = <100>;
 	qcom,battery-type = "3884533_LC_M6300_Coslight_4000mAH_PM6150_FG_averaged_MasterSlave_Feb20th2019";
 	qcom,qg-batt-profile-ver = <100>;

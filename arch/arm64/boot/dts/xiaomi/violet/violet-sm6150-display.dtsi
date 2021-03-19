@@ -86,6 +86,8 @@
 };
 
 &dsi_nt36672a_shenchao_video {
+    qcom,ulps-enabled;
+    qcom,suspend-ulps-enabled;
 	qcom,mdss-dsi-t-clk-post = <0x0f>;
 	qcom,mdss-dsi-t-clk-pre = <0x37>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
@@ -94,11 +96,11 @@
 	qcom,mdss-dsi-display-timings {
 		timing@0{
 			qcom,mdss-dsi-panel-phy-timings =
-				[26 21 09 0b 06 02 04 a0
-				26 21 09 0b 06 02 04 a0
-				26 21 09 0b 06 02 04 a0
-				26 21 09 0b 06 02 04 a0
-				26 20 0a 0b 06 02 04 a0];
+				[26 20 09 0B 06 02 04 a0
+				26 20 09 0B 06 02 04 a0
+				26 20 09 0B 06 02 04 a0
+				26 20 09 0B 06 02 04 a0
+				26 1F 09 0B 06 02 04 a0];
 			qcom,display-topology = <1 0 1>;
 			qcom,default-topology-index = <0>;
 		};

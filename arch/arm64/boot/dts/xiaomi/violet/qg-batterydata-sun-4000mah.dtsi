@@ -17,7 +17,7 @@ qcom,3632066_LC_M6300_Sunwoda_4000mAh_FG {
 
 	qcom,nom-batt-capacity-mah = <4000>;
 	qcom,batt-id-kohm = <330>;
-	qcom,battery-beta = <4250>;
+	qcom,battery-beta = <3985>;
 	qcom,battery-therm-kohm = <100>;
 	qcom,battery-type = "3632066_LC_M6300_Sunwoda_4000mAh_FG_averaged_MasterSlave_Oct17th2018";
 	qcom,qg-batt-profile-ver = <100>;
